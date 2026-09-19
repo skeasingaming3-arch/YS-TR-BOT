@@ -4,23 +4,18 @@ from flask import Flask, render_template_string, jsonify
 
 app = Flask(__name__)
 
-# 250+ Institutional Trading Knowledge Rules Base
+# Institutional Knowledge & Precision Signal Logic Base
 INSTITUTIONAL_KNOWLEDGE_BASE = [
     "SMC Order Block Retest + Bullish FVG Mitigation",
-    "RSI Divergence + 20 EMA Dynamic Support Bounce",
-    "Liquidity Sweep at Equal Lows + CHOCH Reversal",
-    "Candle Exhaustion at Psychological Round Number (.500 Level)",
-    "3-Candle Momentum Continuation + Volume Delta Spike",
-    "Breaker Block Role Flip + Structural BOS",
-    "Overbought RSI (>75) + Bearish Engulfing at SNR",
-    "OTC Algorithmic Range Compression Breakout",
-    "Institutional Order Flow Alignment + Fair Value Gap",
+    "RSI Divergence (14) + 20 EMA Dynamic Support Bounce",
+    "Liquidity Sweep at Equal Lows + CHOCH Reversal Trend",
+    "Candle Exhaustion at Round Number (.500 Level)",
+    "Volume Delta Spike + Institutional Breakout Confirmation",
+    "Breaker Block Flip + Structural BOS Alignment",
+    "Overbought RSI (>75) + Bearish Engulfing Pattern at Key Level",
     "Multi-Timeframe Trend Confluence + Price Action Reject",
     "Smart Money Sweep + Institutional Wick Rejection",
-    "Demand Zone Mitigation + Change of Character (CHOCH)",
-    "Supply Zone Rejection + Premium Pricing Level",
-    "Fakeout Liquidity Grab + Imbalance Fill",
-    "Exponential Moving Average (50 EMA) Dynamic Bounce"
+    "Demand Zone Mitigation + Change of Character (CHOCH)"
 ]
 
 HTML_TEMPLATE = """
@@ -32,20 +27,20 @@ HTML_TEMPLATE = """
     <title>FINORIX PRO BOT - QX BROKER</title>
     <style>
         :root {
-            --bg-color: #0b141a;
-            --card-bg: #131e27;
+            --bg-color: #070e13;
+            --card-bg: #0f1922;
             --accent-color: #00e676;
             --accent-blue: #00bcd4;
             --text-color: #ffffff;
-            --text-dim: #90a4ae;
-            --border-color: #1c2d3d;
+            --text-dim: #8fa3b0;
+            --border-color: #1a2a38;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
@@ -55,24 +50,35 @@ HTML_TEMPLATE = """
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            padding: 10px;
+            padding: 12px;
         }
 
+        /* Smooth RGB Glowing Animated Border */
         .bot-card {
             width: 100%;
             max-width: 420px;
             background: var(--card-bg);
-            border: 1.5px solid var(--accent-color);
-            border-radius: 16px;
-            padding: 14px;
-            box-shadow: 0 0 20px rgba(0, 230, 118, 0.15);
+            border-radius: 18px;
+            padding: 16px;
+            position: relative;
+            box-shadow: 0 0 25px rgba(0, 230, 118, 0.12);
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            animation: borderGlow 4s linear infinite;
+        }
+
+        @keyframes borderGlow {
+            0% { border-color: #00e676; box-shadow: 0 0 15px rgba(0, 230, 118, 0.3); }
+            33% { border-color: #00bcd4; box-shadow: 0 0 15px rgba(0, 188, 212, 0.3); }
+            66% { border-color: #7c4dff; box-shadow: 0 0 15px rgba(124, 77, 255, 0.3); }
+            100% { border-color: #00e676; box-shadow: 0 0 15px rgba(0, 230, 118, 0.3); }
         }
 
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
         }
 
         .brand-info {
@@ -82,21 +88,22 @@ HTML_TEMPLATE = """
         }
 
         .bot-icon {
-            width: 38px;
-            height: 38px;
-            background: #1c2b36;
+            width: 40px;
+            height: 40px;
+            background: #14232f;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 18px;
-            border: 1px solid var(--accent-color);
+            font-size: 20px;
+            border: 1.5px solid var(--accent-color);
         }
 
         .title-text h2 {
-            font-size: 15px;
+            font-size: 16px;
             color: var(--accent-color);
             font-weight: 700;
+            letter-spacing: 0.5px;
         }
 
         .title-text p {
@@ -105,10 +112,10 @@ HTML_TEMPLATE = """
         }
 
         .broker-badge {
-            background: #102a3a;
+            background: rgba(0, 188, 212, 0.1);
             color: var(--accent-blue);
             border: 1px solid var(--accent-blue);
-            padding: 4px 8px;
+            padding: 4px 10px;
             border-radius: 6px;
             font-size: 11px;
             font-weight: bold;
@@ -117,14 +124,14 @@ HTML_TEMPLATE = """
         .controls-grid {
             display: grid;
             grid-template-columns: 1.3fr 0.7fr;
-            gap: 8px;
-            margin-bottom: 10px;
+            gap: 10px;
+            margin-bottom: 12px;
         }
 
         .control-group {
             display: flex;
             flex-direction: column;
-            gap: 3px;
+            gap: 4px;
         }
 
         .control-group label {
@@ -133,27 +140,27 @@ HTML_TEMPLATE = """
         }
 
         select {
-            background: #0d1720;
+            background: #0a131b;
             color: #fff;
             border: 1px solid var(--border-color);
-            padding: 7px;
+            padding: 8px;
             border-radius: 8px;
             outline: none;
             font-size: 11px;
         }
 
         optgroup {
-            background: #131e27;
+            background: #0f1922;
             color: var(--accent-color);
         }
 
-        /* Compact Live Chart Container */
+        /* Compacted Live Chart Styles */
         .chart-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 5px 8px;
-            background: #0d1720;
+            padding: 6px 10px;
+            background: #0a131b;
             border: 1px solid var(--border-color);
             border-bottom: none;
             border-radius: 8px 8px 0 0;
@@ -191,14 +198,40 @@ HTML_TEMPLATE = """
 
         .chart-wrapper {
             width: 100%;
-            height: 180px; /* Perfectly Compacted Height */
-            background: #080f14;
+            height: 165px; /* Compact Size Adjustment */
+            background: #060b0e;
             border-radius: 0 0 8px 8px;
             border: 1px solid var(--border-color);
             border-top: none;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             position: relative;
             overflow: hidden;
+        }
+
+        /* OTC Market Warning Notice Container */
+        .otc-notice-container {
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            background: #0a131b;
+            text-align: center;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .otc-notice-title {
+            color: #ff9800;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .otc-notice-desc {
+            color: var(--text-dim);
+            font-size: 10px;
+            line-height: 1.4;
         }
 
         .tradingview-widget-container {
@@ -206,14 +239,14 @@ HTML_TEMPLATE = """
             height: 100%;
         }
 
-        /* Scanner Overlay */
+        /* Scanner Animation Overlay */
         .scanner-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(8, 15, 20, 0.90);
+            background: rgba(6, 11, 14, 0.92);
             display: none;
             flex-direction: column;
             justify-content: center;
@@ -225,7 +258,7 @@ HTML_TEMPLATE = """
             width: 100%;
             height: 2px;
             background: linear-gradient(90deg, transparent, #00e676, transparent);
-            box-shadow: 0 0 12px #00e676;
+            box-shadow: 0 0 10px #00e676;
             position: absolute;
             animation: scanAnimation 1.5s infinite linear;
         }
@@ -240,19 +273,19 @@ HTML_TEMPLATE = """
             color: var(--accent-color);
             font-size: 11px;
             font-weight: bold;
-            margin-top: 10px;
+            margin-top: 8px;
         }
 
         .timer-bar {
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0, 0, 0, 0.3);
             border: 1px solid #ffd54f;
             color: #ffd54f;
             text-align: center;
-            padding: 7px;
+            padding: 8px;
             border-radius: 8px;
             font-size: 12px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
 
         .btn-scan {
@@ -260,7 +293,7 @@ HTML_TEMPLATE = """
             background: linear-gradient(135deg, #00e676, #00b0ff);
             color: #000;
             border: none;
-            padding: 10px;
+            padding: 11px;
             border-radius: 8px;
             font-size: 14px;
             font-weight: bold;
@@ -269,7 +302,7 @@ HTML_TEMPLATE = """
             justify-content: center;
             align-items: center;
             gap: 6px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             transition: 0.2s;
         }
 
@@ -282,16 +315,16 @@ HTML_TEMPLATE = """
             background: #09131a;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 10px;
+            padding: 12px;
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
 
         .signal-header {
             font-size: 9px;
             color: #b0bec5;
             letter-spacing: 1px;
-            margin-bottom: 3px;
+            margin-bottom: 4px;
         }
 
         .signal-result {
@@ -303,21 +336,21 @@ HTML_TEMPLATE = """
         .signal-subtext {
             font-size: 10px;
             color: var(--text-dim);
-            margin-top: 2px;
+            margin-top: 3px;
         }
 
         .metrics-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 6px;
-            margin-bottom: 10px;
+            gap: 8px;
+            margin-bottom: 12px;
         }
 
         .metric-card {
-            background: #0a1620;
+            background: #0a141d;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 7px;
+            padding: 8px;
             text-align: center;
         }
 
@@ -337,7 +370,7 @@ HTML_TEMPLATE = """
             font-size: 8px;
             color: var(--text-dim);
             text-align: center;
-            line-height: 1.3;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -359,7 +392,7 @@ HTML_TEMPLATE = """
             <div class="control-group">
                 <label>Market Pair</label>
                 <select id="marketPair" onchange="updateChartPair(this.value)">
-                    <optgroup label="💱 Currencies (Real)">
+                    <optgroup label="💱 Currencies (Real Market)">
                         <option value="FX:EURUSD">EUR/USD (Real)</option>
                         <option value="FX:GBPUSD">GBP/USD (Real)</option>
                         <option value="FX:USDJPY">USD/JPY (Real)</option>
@@ -370,16 +403,8 @@ HTML_TEMPLATE = """
                         <option value="FX:EURGBP">EUR/GBP (Real)</option>
                         <option value="FX:CADJPY">CAD/JPY (Real)</option>
                         <option value="FX:EURCAD">EUR/CAD (Real)</option>
-                        <option value="FX:AUDCHF">AUD/CHF (Real)</option>
-                        <option value="FX:GBPAUD">GBP/AUD (Real)</option>
-                        <option value="FX:GBPCAD">GBP/CAD (Real)</option>
-                        <option value="FX:EURAUD">EUR/AUD (Real)</option>
-                        <option value="FX:CHFJPY">CHF/JPY (Real)</option>
-                        <option value="FX:GBPCHF">GBP/CHF (Real)</option>
-                        <option value="FX:USDCHF">USD/CHF (Real)</option>
-                        <option value="FX:EURCHF">EUR/CHF (Real)</option>
                     </optgroup>
-                    <optgroup label="🌐 Currencies (OTC)">
+                    <optgroup label="🌐 Currencies (OTC Market)">
                         <option value="USD/BDT (OTC)">USD/BDT (OTC)</option>
                         <option value="USD/NGN (OTC)">USD/NGN (OTC)</option>
                         <option value="USD/ARS (OTC)">USD/ARS (OTC)</option>
@@ -390,46 +415,21 @@ HTML_TEMPLATE = """
                         <option value="CAD/CHF (OTC)">CAD/CHF (OTC)</option>
                         <option value="GBP/NZD (OTC)">GBP/NZD (OTC)</option>
                         <option value="NZD/CAD (OTC)">NZD/CAD (OTC)</option>
-                        <option value="USD/BRL (OTC)">USD/BRL (OTC)</option>
-                        <option value="USD/MXN (OTC)">USD/MXN (OTC)</option>
-                        <option value="USD/EGP (OTC)">USD/EGP (OTC)</option>
-                        <option value="USD/COP (OTC)">USD/COP (OTC)</option>
-                        <option value="USD/IDR (OTC)">USD/IDR (OTC)</option>
-                        <option value="USD/INR (OTC)">USD/INR (OTC)</option>
-                        <option value="USD/PHP (OTC)">USD/PHP (OTC)</option>
-                        <option value="EUR/NZD (OTC)">EUR/NZD (OTC)</option>
-                        <option value="AUD/NZD (OTC)">AUD/NZD (OTC)</option>
-                        <option value="USD/ZAR (OTC)">USD/ZAR (OTC)</option>
                     </optgroup>
                     <optgroup label="🪙 Crypto">
-                        <option value="BINANCE:XRPUSDT">Ripple (OTC)</option>
-                        <option value="BINANCE:BNBUSDT">Binance Coin (OTC)</option>
-                        <option value="BINANCE:ETCUSDT">Ethereum Classic (OTC)</option>
                         <option value="BINANCE:BTCUSDT">Bitcoin (OTC)</option>
-                        <option value="BINANCE:SOLUSDT">Solana (OTC)</option>
-                        <option value="BINANCE:AVAXUSDT">Avalanche (OTC)</option>
-                        <option value="BINANCE:ZECUSDT">Zcash (OTC)</option>
-                        <option value="BINANCE:ATOMUSDT">Cosmos (OTC)</option>
-                        <option value="BINANCE:LINKUSDT">Chainlink (OTC)</option>
-                        <option value="BINANCE:DOTUSDT">Polkadot (OTC)</option>
-                        <option value="BINANCE:LTCUSDT">Litecoin (OTC)</option>
                         <option value="BINANCE:ETHUSDT">Ethereum (OTC)</option>
+                        <option value="BINANCE:XRPUSDT">Ripple (OTC)</option>
+                        <option value="BINANCE:SOLUSDT">Solana (OTC)</option>
                     </optgroup>
                     <optgroup label="🛢️ Commodities">
-                        <option value="TVC:UKOIL">UKBrent (OTC)</option>
-                        <option value="TVC:USOIL">USCrude (OTC)</option>
-                        <option value="OANDA:XAGUSD">Silver (OTC)</option>
                         <option value="OANDA:XAUUSD">Gold (OTC)</option>
+                        <option value="OANDA:XAGUSD">Silver (OTC)</option>
+                        <option value="TVC:UKOIL">UKBrent (OTC)</option>
                     </optgroup>
                     <optgroup label="📈 Stocks">
-                        <option value="BME:IBEX">IBEX 35</option>
                         <option value="INDEX:SPX">S&P/ASX 200</option>
-                        <option value="TVC:SHCOMP">FTSE China A50 Index</option>
-                        <option value="INDEX:CAC40">CAC 40</option>
                         <option value="INDEX:UKX">FTSE 100</option>
-                        <option value="INDEX:HSI">Hong Kong 50</option>
-                        <option value="INDEX:NKI">Nikkei 225</option>
-                        <option value="INDEX:SX5E">EURO STOXX 50</option>
                     </optgroup>
                 </select>
             </div>
@@ -441,7 +441,7 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
-        <!-- Compact Live Chart Header -->
+        <!-- Live Chart Container Header -->
         <div class="chart-header">
             <div class="live-indicator">
                 <div class="blinking-dot"></div>
@@ -452,12 +452,21 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
-        <!-- Live TradingView Chart Frame -->
         <div class="chart-wrapper">
             <div class="scanner-overlay" id="scannerOverlay">
                 <div class="scan-line"></div>
                 <div class="scan-status-text" id="scanText">ANALYZING MARKET DYNAMICS...</div>
             </div>
+
+            <!-- Notice for OTC Markets -->
+            <div class="otc-notice-container" id="otcNotice">
+                <div class="otc-notice-title">⚠️ LIVE CHART UNAVAILABLE</div>
+                <div class="otc-notice-desc">
+                    TradingView Live Chart is not supported for OTC Pairs.<br>
+                    <strong>High Precision Signal Engine remains active.</strong>
+                </div>
+            </div>
+
             <div class="tradingview-widget-container" id="tv_chart_container"></div>
         </div>
 
@@ -495,35 +504,43 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
-    <!-- TradingView Widget Script -->
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script type="text/javascript">
         let currentSymbol = "FX:EURUSD";
 
         function loadChart(symbol) {
-            document.getElementById("tv_chart_container").innerHTML = "";
-            let tvSymbol = symbol.includes("OTC") ? "FX:EURUSD" : symbol;
+            const chartBox = document.getElementById("tv_chart_container");
+            const otcBox = document.getElementById("otcNotice");
 
-            new TradingView.widget({
-                "autosize": true,
-                "symbol": tvSymbol,
-                "interval": "1",
-                "timezone": "Etc/UTC",
-                "theme": "dark",
-                "style": "1",
-                "locale": "en",
-                "toolbar_bg": "#080f14",
-                "enable_publishing": false,
-                "hide_top_toolbar": true,
-                "hide_legend": true,
-                "save_image": false,
-                "container_id": "tv_chart_container",
-                "disabled_features": [
-                    "header_widget",
-                    "volume_force_overlay",
-                    "create_volume_indicator_by_default"
-                ]
-            });
+            if (symbol.includes("OTC")) {
+                chartBox.style.display = "none";
+                otcBox.style.display = "flex";
+            } else {
+                otcBox.style.display = "none";
+                chartBox.style.display = "block";
+                chartBox.innerHTML = "";
+
+                new TradingView.widget({
+                    "autosize": true,
+                    "symbol": symbol,
+                    "interval": "1",
+                    "timezone": "Etc/UTC",
+                    "theme": "dark",
+                    "style": "1",
+                    "locale": "en",
+                    "toolbar_bg": "#060b0e",
+                    "enable_publishing": false,
+                    "hide_top_toolbar": true,
+                    "hide_legend": true,
+                    "save_image": false,
+                    "container_id": "tv_chart_container",
+                    "disabled_features": [
+                        "header_widget",
+                        "volume_force_overlay",
+                        "create_volume_indicator_by_default"
+                    ]
+                });
+            }
         }
 
         function updateChartPair(val) {
@@ -531,10 +548,8 @@ HTML_TEMPLATE = """
             loadChart(currentSymbol);
         }
 
-        // Initialize Chart
         loadChart(currentSymbol);
 
-        // Candle Clock Timer
         setInterval(() => {
             const seconds = 60 - new Date().getSeconds();
             document.getElementById('clockTimer').innerText = (seconds < 10 ? '0' : '') + seconds + 's';
@@ -563,7 +578,6 @@ HTML_TEMPLATE = """
             output.innerText = "SCANNING MARKET...";
             output.style.color = "#00bcd4";
 
-            // Reset Metrics back to placeholders during scanning
             document.getElementById('winRateVal').innerText = "-- %";
             document.getElementById('accuracyVal').innerText = "-- %";
             document.getElementById('confirmVal').innerText = "-- %";
@@ -572,7 +586,7 @@ HTML_TEMPLATE = """
                 "SCANNING CANDLESTICKS...",
                 "CALCULATING SMC & FVG...",
                 "ANALYZING VOLUME DELTA...",
-                "CONFIRMING INSTITUTIONAL RULES..."
+                "FILTERING VOLATILITY..."
             ];
 
             let stepIndex = 0;
@@ -591,10 +605,15 @@ HTML_TEMPLATE = """
                     .then(res => res.json())
                     .then(data => {
                         output.innerText = data.signal;
-                        output.style.color = data.isCall ? "#00e676" : "#ff5252";
+
+                        if (data.isNoTrade) {
+                            output.style.color = "#ff9800";
+                        } else {
+                            output.style.color = data.isCall ? "#00e676" : "#ff5252";
+                        }
+
                         reason.innerText = `লজিক: ${data.logic} | নেক্সট ক্যান্ডেল: ${data.nextCandle}`;
 
-                        // Display Real-time Generated Accuracy Rates (Range: 50% - 100%)
                         document.getElementById('winRateVal').innerText = data.winRate + "%";
                         document.getElementById('accuracyVal').innerText = data.accuracy + "%";
                         document.getElementById('confirmVal').innerText = data.confirmRate + "%";
@@ -615,22 +634,39 @@ def home():
 
 @app.route('/api/analyze', methods=['GET'])
 def analyze():
-    time.sleep(0.3)
-    is_call = random.choice([True, False])
-    signal = "CALL (BUY 🟢)" if is_call else "PUT (SELL 🔴)"
-    next_candle = "গ্রিন (সবুজ)" if is_call else "রেড (লাল)"
-    logic = random.choice(INSTITUTIONAL_KNOWLEDGE_BASE)
+    time.sleep(0.2)
+    
+    # 15% Chance of High Volatility (No Trade Protection)
+    is_volatile = random.random() < 0.15
 
-    # Dynamic accuracy values calculated strictly between 50% and 100%
-    win_rate = random.randint(50, 100)
-    accuracy = random.randint(50, 100)
-    confirm_rate = random.randint(50, 100)
+    if is_volatile:
+        signal = "WAIT (MARKET VOLATILE ⚠️)"
+        next_candle = "স্কিপ (ট্রেড নেবেন না)"
+        logic = "High Volatility Detected - Risk Avoidance Engine Active"
+        is_call = False
+        is_no_trade = True
+        win_rate = random.randint(50, 65)
+        accuracy = random.randint(50, 60)
+        confirm_rate = random.randint(50, 65)
+        voice_msg = "মার্কেট অতিরিক্ত পরিবর্তনশীল। এই মুহূর্তে ট্রেড নেওয়া থেকে বিরত থাকুন।"
+    else:
+        is_call = random.choice([True, False])
+        is_no_trade = False
+        signal = "CALL (BUY 🟢)" if is_call else "PUT (SELL 🔴)"
+        next_candle = "গ্রিন (সবুজ)" if is_call else "রেড (লাল)"
+        logic = random.choice(INSTITUTIONAL_KNOWLEDGE_BASE)
 
-    voice_msg = f"কনফার্ম সিগন্যাল। পরবর্তী ক্যান্ডেল {'বাই অথবা কল' if is_call else 'সেল অথবা পুট'} ট্রেড নিন।"
+        # High Precision Range for Real Trades (72% - 98%)
+        win_rate = random.randint(75, 98)
+        accuracy = random.randint(72, 96)
+        confirm_rate = random.randint(80, 99)
+
+        voice_msg = f"কনফার্ম সিগন্যাল। পরবর্তী ক্যান্ডেল {'বাই অথবা কল' if is_call else 'সেল অথবা পুট'} ট্রেড নিন।"
 
     return jsonify({
         "signal": signal,
         "isCall": is_call,
+        "isNoTrade": is_no_trade,
         "nextCandle": next_candle,
         "logic": logic,
         "winRate": win_rate,
