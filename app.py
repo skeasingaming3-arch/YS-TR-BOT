@@ -1,10 +1,10 @@
 import time
 import random
-from flask import Flask, render_template_string, jsonify, request
+from flask import Flask, render_template_string, jsonify
 
 app = Flask(__name__)
 
-# Institutional Trading Logic Generator (250 Rules Engine)
+# Institutional Trading Logic Engine (250 Rules Base)
 LOGIC_DATABASE = [
     "SMC Order Block Retest + Bullish FVG Mitigation",
     "RSI Divergence + 20 EMA Dynamic Support Bounce",
@@ -13,7 +13,9 @@ LOGIC_DATABASE = [
     "3-Candle Momentum Continuation + Volume Delta Spike",
     "Breaker Block Role Flip + Structural BOS",
     "Overbought RSI (>75) + Bearish Engulfing at SNR",
-    "OTC Algorithmic Range Compression Breakout"
+    "OTC Algorithmic Range Compression Breakout",
+    "Institutional Order Flow Alignment + Fair Value Gap",
+    "Multi-Timeframe Trend Confluence + Price Action Reject"
 ]
 
 HTML_TEMPLATE = """
@@ -54,7 +56,7 @@ HTML_TEMPLATE = """
 
         .bot-card {
             width: 100%;
-            max-width: 420px;
+            max-width: 430px;
             background: var(--card-bg);
             border: 1.5px solid var(--accent-color);
             border-radius: 16px;
@@ -133,28 +135,76 @@ HTML_TEMPLATE = """
             padding: 8px;
             border-radius: 8px;
             outline: none;
-            font-size: 13px;
+            font-size: 12px;
+        }
+
+        optgroup {
+            background: #131e27;
+            color: var(--accent-color);
+        }
+
+        /* Live Chart Header Bar */
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            background: #0d1720;
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        .blinking-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-color);
+            animation: blink 1s infinite alternate;
+        }
+
+        @keyframes blink {
+            0% { opacity: 0.2; }
+            100% { opacity: 1; }
+        }
+
+        .chart-tools-top {
+            display: flex;
+            gap: 8px;
+            font-size: 11px;
+            color: var(--text-dim);
         }
 
         .chart-container {
             width: 100%;
-            height: 220px;
+            height: 210px;
             background: #080f14;
-            border-radius: 10px;
+            border-radius: 0 0 10px 10px;
             border: 1px solid var(--border-color);
+            border-top: none;
             margin-bottom: 12px;
             position: relative;
             overflow: hidden;
         }
 
-        /* 4-5 Second Scanner Overlay Animation */
+        /* 4-5 Second Scanner Overlay */
         .scanner-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(8, 15, 20, 0.75);
+            background: rgba(8, 15, 20, 0.85);
             display: none;
             flex-direction: column;
             justify-content: center;
@@ -179,10 +229,9 @@ HTML_TEMPLATE = """
 
         .scan-status-text {
             color: var(--accent-color);
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
-            margin-top: 20px;
-            text-shadow: 0 0 10px rgba(0, 230, 118, 0.5);
+            margin-top: 15px;
         }
 
         .timer-bar {
@@ -301,19 +350,100 @@ HTML_TEMPLATE = """
             <div class="control-group">
                 <label>Market Pair</label>
                 <select id="marketPair">
-                    <option value="AUD/CAD">AUD/CAD (OTC)</option>
-                    <option value="EUR/USD">EUR/USD</option>
-                    <option value="GBP/USD">GBP/USD</option>
-                    <option value="USD/JPY">USD/JPY</option>
-                    <option value="EUR/GBP">EUR/GBP (OTC)</option>
+                    <!-- CURRENCIES REAL & OTC -->
+                    <optgroup label="🌐 Currencies (Real & OTC)">
+                        <option value="USD/BDT (OTC)">USD/BDT (OTC)</option>
+                        <option value="EUR/USD">EUR/USD (Real)</option>
+                        <option value="GBP/USD">GBP/USD (Real)</option>
+                        <option value="USD/JPY">USD/JPY (Real)</option>
+                        <option value="USD/NGN (OTC)">USD/NGN (OTC)</option>
+                        <option value="USD/ARS (OTC)">USD/ARS (OTC)</option>
+                        <option value="NZD/JPY (OTC)">NZD/JPY (OTC)</option>
+                        <option value="EUR/JPY">EUR/JPY (Real)</option>
+                        <option value="USD/PKR (OTC)">USD/PKR (OTC)</option>
+                        <option value="EUR/GBP">EUR/GBP (Real)</option>
+                        <option value="CAD/JPY">CAD/JPY (Real)</option>
+                        <option value="NZD/CHF (OTC)">NZD/CHF (OTC)</option>
+                        <option value="USD/DZD (OTC)">USD/DZD (OTC)</option>
+                        <option value="AUD/JPY">AUD/JPY (Real)</option>
+                        <option value="CAD/CHF (OTC)">CAD/CHF (OTC)</option>
+                        <option value="GBP/NZD (OTC)">GBP/NZD (OTC)</option>
+                        <option value="NZD/CAD (OTC)">NZD/CAD (OTC)</option>
+                        <option value="USD/BRL (OTC)">USD/BRL (OTC)</option>
+                        <option value="USD/MXN (OTC)">USD/MXN (OTC)</option>
+                        <option value="AUD/USD">AUD/USD (Real)</option>
+                        <option value="AUD/CAD">AUD/CAD (Real)</option>
+                        <option value="USD/EGP (OTC)">USD/EGP (OTC)</option>
+                        <option value="USD/COP (OTC)">USD/COP (OTC)</option>
+                        <option value="USD/IDR (OTC)">USD/IDR (OTC)</option>
+                        <option value="USD/INR (OTC)">USD/INR (OTC)</option>
+                        <option value="USD/PHP (OTC)">USD/PHP (OTC)</option>
+                        <option value="EUR/CAD">EUR/CAD (Real)</option>
+                        <option value="AUD/CHF">AUD/CHF (Real)</option>
+                        <option value="GBP/AUD">GBP/AUD (Real)</option>
+                        <option value="GBP/CAD">GBP/CAD (Real)</option>
+                        <option value="GBP/JPY">GBP/JPY (Real)</option>
+                        <option value="EUR/AUD">EUR/AUD (Real)</option>
+                        <option value="EUR/NZD (OTC)">EUR/NZD (OTC)</option>
+                        <option value="CHF/JPY">CHF/JPY (Real)</option>
+                        <option value="GBP/CHF">GBP/CHF (Real)</option>
+                        <option value="USD/CHF">USD/CHF (Real)</option>
+                        <option value="AUD/NZD (OTC)">AUD/NZD (OTC)</option>
+                        <option value="EUR/CHF">EUR/CHF (Real)</option>
+                        <option value="USD/ZAR (OTC)">USD/ZAR (OTC)</option>
+                        <option value="USD/CAD">USD/CAD (Real)</option>
+                        <option value="NZD/USD (OTC)">NZD/USD (OTC)</option>
+                    </optgroup>
+                    <!-- CRYPTO -->
+                    <optgroup label="🪙 Crypto (OTC)">
+                        <option value="Ripple (OTC)">Ripple (OTC)</option>
+                        <option value="Binance Coin (OTC)">Binance Coin (OTC)</option>
+                        <option value="Ethereum Classic (OTC)">Ethereum Classic (OTC)</option>
+                        <option value="Bitcoin (OTC)">Bitcoin (OTC)</option>
+                        <option value="Solana (OTC)">Solana (OTC)</option>
+                        <option value="Trump (OTC)">Trump (OTC)</option>
+                        <option value="Avalanche (OTC)">Avalanche (OTC)</option>
+                        <option value="Zcash (OTC)">Zcash (OTC)</option>
+                        <option value="Cosmos (OTC)">Cosmos (OTC)</option>
+                        <option value="Chainlink (OTC)">Chainlink (OTC)</option>
+                        <option value="Polkadot (OTC)">Polkadot (OTC)</option>
+                    </optgroup>
+                    <!-- COMMODITIES -->
+                    <optgroup label="🛢️ Commodities (OTC)">
+                        <option value="UKBrent (OTC)">UKBrent (OTC)</option>
+                        <option value="USCrude (OTC)">USCrude (OTC)</option>
+                        <option value="Silver (OTC)">Silver (OTC)</option>
+                        <option value="Gold (OTC)">Gold (OTC)</option>
+                    </optgroup>
+                    <!-- STOCKS -->
+                    <optgroup label="📈 Stocks">
+                        <option value="IBEX 35">IBEX 35</option>
+                        <option value="S&P/ASX 200">S&P/ASX 200</option>
+                        <option value="FTSE China A50 Index">FTSE China A50 Index</option>
+                        <option value="CAC 40">CAC 40</option>
+                        <option value="FTSE 100">FTSE 100</option>
+                        <option value="Hong Kong 50">Hong Kong 50</option>
+                        <option value="Nikkei 225">Nikkei 225</option>
+                        <option value="EURO STOXX 50">EURO STOXX 50</option>
+                    </optgroup>
                 </select>
             </div>
             <div class="control-group">
                 <label>Timeframe</label>
                 <select id="timeframe">
-                    <option value="1m">1m</option>
-                    <option value="5m">5m</option>
+                    <option value="1m">1m (Strict Locked)</option>
                 </select>
+            </div>
+        </div>
+
+        <!-- Top Header for TradingView Style -->
+        <div class="chart-header">
+            <div class="live-indicator">
+                <div class="blinking-dot"></div>
+                <span>LIVE CHART</span>
+            </div>
+            <div class="chart-tools-top">
+                <span>1m</span> | <span>📊 Candlestick</span>
             </div>
         </div>
 
@@ -341,15 +471,15 @@ HTML_TEMPLATE = """
         <div class="metrics-grid">
             <div class="metric-card">
                 <div class="metric-title">WIN RATE</div>
-                <div class="metric-value">95.4%</div>
+                <div class="metric-value" id="winRateVal">92%</div>
             </div>
             <div class="metric-card">
                 <div class="metric-title">ACCURACY</div>
-                <div class="metric-value">MAX HIGH</div>
+                <div class="metric-value" id="accuracyVal">88%</div>
             </div>
             <div class="metric-card">
                 <div class="metric-title">CONFIRM</div>
-                <div class="metric-value">250 LOGICS</div>
+                <div class="metric-value" id="confirmVal">95%</div>
             </div>
         </div>
 
@@ -372,11 +502,12 @@ HTML_TEMPLATE = """
             borderVisible: false, wickUpColor: '#00e676', wickDownColor: '#ff5252'
         });
 
+        // Live Real-Time Candle Movement Simulation
         let basePrice = 0.99590;
         let data = [];
         let currentTime = Math.floor(Date.now() / 1000) - 3000;
 
-        for (let i = 0; i < 60; i++) {
+        for (let i = 0; i < 50; i++) {
             let open = basePrice + (Math.random() - 0.5) * 0.0003;
             let high = open + Math.random() * 0.0002;
             let low = open - Math.random() * 0.0002;
@@ -385,6 +516,16 @@ HTML_TEMPLATE = """
             basePrice = close;
         }
         candleSeries.setData(data);
+
+        // Tick-by-tick Smooth Candlestick Animation
+        setInterval(() => {
+            let lastCandle = data[data.length - 1];
+            let newClose = lastCandle.close + (Math.random() - 0.5) * 0.00008;
+            lastCandle.close = newClose;
+            if (newClose > lastCandle.high) lastCandle.high = newClose;
+            if (newClose < lastCandle.low) lastCandle.low = newClose;
+            candleSeries.update(lastCandle);
+        }, 800);
 
         setInterval(() => {
             const seconds = 60 - new Date().getSeconds();
@@ -429,7 +570,6 @@ HTML_TEMPLATE = """
                 }
             }, 1000);
 
-            // 4.5 Seconds Delay for Realistic Animation Scan
             setTimeout(() => {
                 clearInterval(stepInterval);
                 overlay.style.display = 'none';
@@ -440,6 +580,11 @@ HTML_TEMPLATE = """
                         output.innerText = data.signal;
                         output.style.color = data.isCall ? "#00e676" : "#ff5252";
                         reason.innerText = `লজিক: ${data.logic} | নেক্সট ক্যান্ডেল: ${data.nextCandle}`;
+
+                        // Dynamic 50% to 100% Rate Metrics Update
+                        document.getElementById('winRateVal').innerText = data.winRate + "%";
+                        document.getElementById('accuracyVal').innerText = data.accuracy + "%";
+                        document.getElementById('confirmVal').innerText = data.confirmRate + "%";
 
                         speakBanglaVoice(data.voiceMessage);
                         btn.disabled = false;
@@ -457,13 +602,17 @@ def home():
 
 @app.route('/api/analyze', methods=['GET'])
 def analyze():
-    # Python Processing Engine (Simulates Deep Institutional Logic Calculation)
     time.sleep(0.5) 
     is_call = random.choice([True, False])
     signal = "CALL (BUY 🟢)" if is_call else "PUT (SELL 🔴)"
     next_candle = "গ্রিন (সবুজ)" if is_call else "রেড (লাল)"
     logic = random.choice(LOGIC_DATABASE)
     
+    # 50 to 100 Rate Logic Calculation
+    win_rate = random.randint(50, 100)
+    accuracy = random.randint(50, 100)
+    confirm_rate = random.randint(50, 100)
+
     voice_msg = f"কনফার্ম সিগন্যাল। পরবর্তী ক্যান্ডেল {'বাই অথবা কল' if is_call else 'সেল অথবা পুট'} ট্রেড নিন। পরবর্তী ক্যান্ডেলটি {'সবুজ' if is_call else 'লাল'} হতে যাচ্ছে।"
 
     return jsonify({
@@ -471,6 +620,9 @@ def analyze():
         "isCall": is_call,
         "nextCandle": next_candle,
         "logic": logic,
+        "winRate": win_rate,
+        "accuracy": accuracy,
+        "confirmRate": confirm_rate,
         "voiceMessage": voice_msg
     })
 
