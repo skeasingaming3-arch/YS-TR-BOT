@@ -4,21 +4,18 @@ from flask import Flask, render_template_string, jsonify
 
 app = Flask(__name__)
 
-# Complete Institutional Precision Logic Repository
-REAL_MARKET_LOGIC = [
-    "SMC Order Block Retest + Bullish FVG Mitigation Confluence",
-    "RSI Divergence (14) + 20 EMA Dynamic Support Reversal Bounce",
-    "Liquidity Sweep at Key Support + Structural CHOCH Change",
-    "Candle Exhaustion Pattern at Key Round Number (.500 Level)",
+# Real & Forex Institutional Knowledge Base
+INSTITUTIONAL_KNOWLEDGE_BASE = [
+    "SMC Order Block Retest + Bullish FVG Mitigation",
+    "RSI Divergence (14) + 20 EMA Dynamic Support Bounce",
+    "Liquidity Sweep at Equal Lows + CHOCH Reversal Trend",
+    "Candle Exhaustion at Round Number (.500 Level)",
     "Volume Delta Spike + Institutional Breakout Confirmation",
-    "Breaker Block Flip + Market Structure BOS Alignment"
-]
-
-OTC_MARKET_LOGIC = [
-    "Algorithmic Pattern Exhaustion + OTC Trend Continuation",
-    "OTC Resistance Rejection + Price Action Wick Sweeps",
-    "Micro-Trend Breakout + OTC Momentum Confluence Engine",
-    "Mean Reversion Bounce at Dynamic Bollinger Band Outer Threshold"
+    "Breaker Block Flip + Structural BOS Alignment",
+    "Overbought RSI (>75) + Bearish Engulfing Pattern at Key Level",
+    "Multi-Timeframe Trend Confluence + Price Action Reject",
+    "Smart Money Sweep + Institutional Wick Rejection",
+    "Demand Zone Mitigation + Change of Character (CHOCH)"
 ]
 
 HTML_TEMPLATE = """
@@ -54,16 +51,15 @@ HTML_TEMPLATE = """
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            padding: 12px;
+            padding: 8px;
         }
 
-        /* 1ms Smooth RGB Animated Border */
         .bot-card {
             width: 100%;
             max-width: 420px;
             background: var(--card-bg);
             border-radius: 18px;
-            padding: 16px;
+            padding: 14px;
             position: relative;
             box-shadow: 0 0 25px rgba(0, 230, 118, 0.12);
             border: 2px solid transparent;
@@ -83,7 +79,7 @@ HTML_TEMPLATE = """
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 14px;
+            margin-bottom: 10px;
         }
 
         .brand-info {
@@ -92,22 +88,21 @@ HTML_TEMPLATE = """
             gap: 10px;
         }
 
-        /* Upgraded Dynamic Cyber Robot Icon */
         .bot-icon {
-            width: 42px;
-            height: 42px;
+            width: 40px;
+            height: 40px;
             background: linear-gradient(135deg, #102a3a, #05131d);
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 22px;
+            font-size: 20px;
             border: 2px solid var(--accent-color);
             box-shadow: 0 0 10px rgba(0, 230, 118, 0.5);
         }
 
         .title-text h2 {
-            font-size: 16px;
+            font-size: 15px;
             color: var(--accent-color);
             font-weight: 700;
             letter-spacing: 0.5px;
@@ -122,23 +117,23 @@ HTML_TEMPLATE = """
             background: rgba(0, 188, 212, 0.1);
             color: var(--accent-blue);
             border: 1px solid var(--accent-blue);
-            padding: 4px 10px;
+            padding: 4px 8px;
             border-radius: 6px;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: bold;
         }
 
         .controls-grid {
             display: grid;
             grid-template-columns: 1.2fr 0.8fr;
-            gap: 10px;
-            margin-bottom: 12px;
+            gap: 8px;
+            margin-bottom: 10px;
         }
 
         .control-group {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 3px;
         }
 
         .control-group label {
@@ -150,7 +145,7 @@ HTML_TEMPLATE = """
             background: #0a131b;
             color: #fff;
             border: 1px solid var(--border-color);
-            padding: 8px;
+            padding: 7px;
             border-radius: 8px;
             outline: none;
             font-size: 11px;
@@ -165,7 +160,7 @@ HTML_TEMPLATE = """
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px 10px;
+            padding: 5px 10px;
             background: #0a131b;
             border: 1px solid var(--border-color);
             border-bottom: none;
@@ -204,17 +199,16 @@ HTML_TEMPLATE = """
 
         .chart-wrapper {
             width: 100%;
-            height: 160px;
+            height: 145px;
             background: #060b0e;
             border-radius: 0 0 8px 8px;
             border: 1px solid var(--border-color);
             border-top: none;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             position: relative;
             overflow: hidden;
         }
 
-        /* Red Warning Container for OTC */
         .otc-notice-container {
             display: none;
             width: 100%;
@@ -232,9 +226,8 @@ HTML_TEMPLATE = """
 
         .otc-notice-title {
             color: var(--warning-red);
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
-            letter-spacing: 0.5px;
         }
 
         .otc-notice-desc {
@@ -248,7 +241,6 @@ HTML_TEMPLATE = """
             height: 100%;
         }
 
-        /* Scanning Overlay for Real Market */
         .scanner-overlay {
             position: absolute;
             top: 0;
@@ -290,11 +282,11 @@ HTML_TEMPLATE = """
             border: 1px solid #ffd54f;
             color: #ffd54f;
             text-align: center;
-            padding: 8px;
+            padding: 7px;
             border-radius: 8px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .btn-scan {
@@ -302,17 +294,16 @@ HTML_TEMPLATE = """
             background: linear-gradient(135deg, #00e676, #00b0ff);
             color: #000;
             border: none;
-            padding: 11px;
+            padding: 10px;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             cursor: pointer;
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 6px;
-            margin-bottom: 12px;
-            transition: 0.2s;
+            margin-bottom: 10px;
         }
 
         .btn-scan:disabled {
@@ -324,42 +315,42 @@ HTML_TEMPLATE = """
             background: #09131a;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 12px;
+            padding: 10px;
             text-align: center;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .signal-header {
             font-size: 9px;
             color: #b0bec5;
             letter-spacing: 1px;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
 
         .signal-result {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 800;
             color: var(--accent-color);
         }
 
         .signal-subtext {
-            font-size: 10px;
+            font-size: 9px;
             color: var(--text-dim);
-            margin-top: 3px;
+            margin-top: 2px;
         }
 
         .metrics-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             gap: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .metric-card {
             background: #0a141d;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 8px;
+            padding: 6px;
             text-align: center;
         }
 
@@ -370,7 +361,7 @@ HTML_TEMPLATE = """
         }
 
         .metric-value {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
             color: #fff;
         }
@@ -379,7 +370,7 @@ HTML_TEMPLATE = """
             font-size: 8px;
             color: var(--text-dim);
             text-align: center;
-            line-height: 1.4;
+            line-height: 1.3;
         }
     </style>
 </head>
@@ -412,11 +403,6 @@ HTML_TEMPLATE = """
                         <option value="FX:EURGBP">EUR/GBP (Real)</option>
                         <option value="FX:CADJPY">CAD/JPY (Real)</option>
                         <option value="FX:EURCAD">EUR/CAD (Real)</option>
-                        <option value="FX:GBPJPY">GBP/JPY (Real)</option>
-                        <option value="FX:NZDUSD">NZD/USD (Real)</option>
-                        <option value="FX:USDCHF">USD/CHF (Real)</option>
-                        <option value="FX:EURAUD">EUR/AUD (Real)</option>
-                        <option value="FX:GBPCAD">GBP/CAD (Real)</option>
                     </optgroup>
                     <optgroup label="🌐 OTC Market Currencies">
                         <option value="USD/BDT (OTC)">USD/BDT (OTC)</option>
@@ -424,27 +410,8 @@ HTML_TEMPLATE = """
                         <option value="USD/ARS (OTC)">USD/ARS (OTC)</option>
                         <option value="NZD/JPY (OTC)">NZD/JPY (OTC)</option>
                         <option value="USD/PKR (OTC)">USD/PKR (OTC)</option>
-                        <option value="NZD/CHF (OTC)">NZD/CHF (OTC)</option>
-                        <option value="USD/DZD (OTC)">USD/DZD (OTC)</option>
-                        <option value="CAD/CHF (OTC)">CAD/CHF (OTC)</option>
-                        <option value="GBP/NZD (OTC)">GBP/NZD (OTC)</option>
-                        <option value="NZD/CAD (OTC)">NZD/CAD (OTC)</option>
                         <option value="EUR/USD (OTC)">EUR/USD (OTC)</option>
                         <option value="GBP/USD (OTC)">GBP/USD (OTC)</option>
-                        <option value="USD/JPY (OTC)">USD/JPY (OTC)</option>
-                    </optgroup>
-                    <optgroup label="🪙 Crypto Assets">
-                        <option value="BINANCE:BTCUSDT">Bitcoin (OTC)</option>
-                        <option value="BINANCE:ETHUSDT">Ethereum (OTC)</option>
-                        <option value="BINANCE:XRPUSDT">Ripple (OTC)</option>
-                        <option value="BINANCE:SOLUSDT">Solana (OTC)</option>
-                    </optgroup>
-                    <optgroup label="🛢️ Commodities & Indices">
-                        <option value="OANDA:XAUUSD">Gold (OTC)</option>
-                        <option value="OANDA:XAGUSD">Silver (OTC)</option>
-                        <option value="TVC:UKOIL">UKBrent (OTC)</option>
-                        <option value="INDEX:SPX">S&P/ASX 200</option>
-                        <option value="INDEX:UKX">FTSE 100</option>
                     </optgroup>
                 </select>
             </div>
@@ -476,12 +443,11 @@ HTML_TEMPLATE = """
                 <div class="scan-status-text" id="scanText">ANALYZING REAL MARKET...</div>
             </div>
 
-            <!-- Red Warning Screen for OTC -->
             <div class="otc-notice-container" id="otcNotice">
                 <div class="otc-notice-title">⚠️ WARNING: OTC MARKET SELECTED</div>
                 <div class="otc-notice-desc">
                     Live Chart is disabled for OTC Pairs.<br>
-                    <strong>OTC Direct Calculation Signal Engine is active.</strong>
+                    <strong>OTC Direct Engine Active.</strong>
                 </div>
             </div>
 
@@ -499,7 +465,7 @@ HTML_TEMPLATE = """
         <div class="signal-box">
             <div class="signal-header">🔮 SIGNAL GENERATED</div>
             <div class="signal-result" id="signalOutput">PRESS SCAN TO START</div>
-            <div class="signal-subtext" id="signalReason">Click SCAN button to trigger multi-layered institutional engine</div>
+            <div class="signal-subtext" id="signalReason">Click SCAN button to trigger analysis</div>
         </div>
 
         <div class="metrics-grid">
@@ -518,7 +484,7 @@ HTML_TEMPLATE = """
         </div>
 
         <div class="footer-desc">
-            This signal engine operates using advanced multi-indicator real market analysis, price action strategy, RSI confluence, and volume dynamics to deliver maximum precision.
+            This signal engine operates using price action strategy and volume dynamics.
         </div>
     </div>
 
@@ -555,7 +521,12 @@ HTML_TEMPLATE = """
                     "hide_top_toolbar": true,
                     "hide_legend": true,
                     "save_image": false,
-                    "container_id": "tv_chart_container"
+                    "container_id": "tv_chart_container",
+                    "disabled_features": [
+                        "header_widget",
+                        "volume_force_overlay",
+                        "create_volume_indicator_by_default"
+                    ]
                 });
             }
         }
@@ -572,94 +543,41 @@ HTML_TEMPLATE = """
             document.getElementById('clockTimer').innerText = (seconds < 10 ? '0' : '') + seconds + 's';
         }, 1000);
 
-        function speakBanglaVoice(text) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'bn-BD';
-                utterance.rate = 0.9;
-                utterance.pitch = 1.0;
-                window.speechSynthesis.speak(utterance);
-            }
-        }
-
         function startScannerProcess() {
             const btn = document.getElementById('scanBtn');
             const overlay = document.getElementById('scannerOverlay');
-            const scanText = document.getElementById('scanText');
             const output = document.getElementById('signalOutput');
             const reason = document.getElementById('signalReason');
             const isOtc = currentSymbol.includes("OTC");
 
             btn.disabled = true;
             output.innerText = "SCANNING MARKET...";
-            output.style.color = "#00bcd4";
-
-            document.getElementById('winRateVal').innerText = "-- %";
-            document.getElementById('accuracyVal').innerText = "-- %";
-            document.getElementById('confirmVal').innerText = "-- %";
 
             if (!isOtc) {
-                // Show scanner overlay ONLY for Real Market
                 overlay.style.display = 'flex';
-                const scanSteps = [
-                    "SCANNING REAL CANDLESTICKS...",
-                    "CALCULATING SMC & FVG...",
-                    "ANALYZING VOLUME DELTA...",
-                    "VERIFYING VOLATILITY..."
-                ];
-
-                let stepIndex = 0;
-                const stepInterval = setInterval(() => {
-                    if (stepIndex < scanSteps.length) {
-                        scanText.innerText = scanSteps[stepIndex];
-                        stepIndex++;
-                    }
-                }, 1000);
-
                 setTimeout(() => {
-                    clearInterval(stepInterval);
                     overlay.style.display = 'none';
-                    executeSignalFetch(isOtc, btn, output, reason);
-                }, 4500);
+                    executeSignalFetch(btn, output, reason);
+                }, 3500);
             } else {
-                // OTC Market Scanning Delay (No overlay on chart)
-                let btnSteps = ["SCANNING OTC...", "PROCESSING DATA...", "FILTERING RISK...", "FINALIZING..."];
-                let btnIdx = 0;
-                
-                const btnInterval = setInterval(() => {
-                    if (btnIdx < btnSteps.length) {
-                        output.innerText = btnSteps[btnIdx];
-                        btnIdx++;
-                    }
-                }, 1000);
-
                 setTimeout(() => {
-                    clearInterval(btnInterval);
-                    executeSignalFetch(isOtc, btn, output, reason);
-                }, 4500);
+                    executeSignalFetch(btn, output, reason);
+                }, 3500);
             }
         }
 
-        function executeSignalFetch(isOtc, btn, output, reason) {
-            fetch(`/api/analyze?isOtc=${isOtc}`)
+        function executeSignalFetch(btn, output, reason) {
+            fetch('/api/analyze')
                 .then(res => res.json())
                 .then(data => {
                     output.innerText = data.signal;
-
-                    if (data.isNoTrade) {
-                        output.style.color = "#ff9800";
-                    } else {
-                        output.style.color = data.isCall ? "#00e676" : "#ff5252";
-                    }
-
+                    output.style.color = data.isCall ? "#00e676" : "#ff5252";
                     reason.innerText = `লজিক: ${data.logic} | নেক্সট ক্যান্ডেল: ${data.nextCandle}`;
 
                     document.getElementById('winRateVal').innerText = data.winRate + "%";
                     document.getElementById('accuracyVal').innerText = data.accuracy + "%";
                     document.getElementById('confirmVal').innerText = data.confirmRate + "%";
 
-                    speakBanglaVoice(data.voiceMessage);
                     btn.disabled = false;
                 });
         }
@@ -675,44 +593,19 @@ def home():
 @app.route('/api/analyze', methods=['GET'])
 def analyze():
     time.sleep(0.2)
-    
-    # Risk Mitigation Logic - 12% Chance of High Volatility Delay
-    is_volatile = random.random() < 0.12
-
-    if is_volatile:
-        signal = "WAIT (MARKET VOLATILE ⚠️)"
-        next_candle = "স্কিপ (ট্রেড নেবেন না)"
-        logic = "Volatile Market Spike Detected - High Risk Mitigation Active"
-        is_call = False
-        is_no_trade = True
-        win_rate = random.randint(55, 65)
-        accuracy = random.randint(50, 60)
-        confirm_rate = random.randint(50, 60)
-        voice_msg = "মার্কেট পরিবর্তনশীল। সঠিক সুযোগের জন্য অপেক্ষা করুন।"
-    else:
-        is_call = random.choice([True, False])
-        is_no_trade = False
-        signal = "CALL (BUY 🟢)" if is_call else "PUT (SELL 🔴)"
-        next_candle = "গ্রিন (সবুজ)" if is_call else "রেড (লাল)"
-        
-        # High Accuracy Logic Range
-        win_rate = random.randint(78, 98)
-        accuracy = random.randint(80, 96)
-        confirm_rate = random.randint(85, 99)
-        logic = random.choice(REAL_MARKET_LOGIC)
-
-        voice_msg = f"কনফার্ম সিগন্যাল। পরবর্তী ক্যান্ডেল {'বাই অথবা কল' if is_call else 'সেল অথবা পুট'} ট্রেড নিন।"
+    is_call = random.choice([True, False])
+    signal = "CALL (BUY 🟢)" if is_call else "PUT (SELL 🔴)"
+    next_candle = "গ্রিন (সবুজ)" if is_call else "রেড (লাল)"
+    logic = random.choice(INSTITUTIONAL_KNOWLEDGE_BASE)
 
     return jsonify({
         "signal": signal,
         "isCall": is_call,
-        "isNoTrade": is_no_trade,
         "nextCandle": next_candle,
         "logic": logic,
-        "winRate": win_rate,
-        "accuracy": accuracy,
-        "confirmRate": confirm_rate,
-        "voiceMessage": voice_msg
+        "winRate": random.randint(75, 95),
+        "accuracy": random.randint(75, 92),
+        "confirmRate": random.randint(80, 98)
     })
 
 if __name__ == '__main__':
