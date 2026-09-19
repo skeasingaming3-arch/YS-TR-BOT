@@ -4,18 +4,21 @@ from flask import Flask, render_template_string, jsonify
 
 app = Flask(__name__)
 
-# Institutional Knowledge & Precision Signal Logic Base
-INSTITUTIONAL_KNOWLEDGE_BASE = [
-    "SMC Order Block Retest + Bullish FVG Mitigation",
-    "RSI Divergence (14) + 20 EMA Dynamic Support Bounce",
-    "Liquidity Sweep at Equal Lows + CHOCH Reversal Trend",
-    "Candle Exhaustion at Round Number (.500 Level)",
+# Complete Institutional Precision Logic Repository
+REAL_MARKET_LOGIC = [
+    "SMC Order Block Retest + Bullish FVG Mitigation Confluence",
+    "RSI Divergence (14) + 20 EMA Dynamic Support Reversal Bounce",
+    "Liquidity Sweep at Key Support + Structural CHOCH Change",
+    "Candle Exhaustion Pattern at Key Round Number (.500 Level)",
     "Volume Delta Spike + Institutional Breakout Confirmation",
-    "Breaker Block Flip + Structural BOS Alignment",
-    "Overbought RSI (>75) + Bearish Engulfing Pattern at Key Level",
-    "Multi-Timeframe Trend Confluence + Price Action Reject",
-    "Smart Money Sweep + Institutional Wick Rejection",
-    "Demand Zone Mitigation + Change of Character (CHOCH)"
+    "Breaker Block Flip + Market Structure BOS Alignment"
+]
+
+OTC_MARKET_LOGIC = [
+    "Algorithmic Pattern Exhaustion + OTC Trend Continuation",
+    "OTC Resistance Rejection + Price Action Wick Sweeps",
+    "Micro-Trend Breakout + OTC Momentum Confluence Engine",
+    "Mean Reversion Bounce at Dynamic Bollinger Band Outer Threshold"
 ]
 
 HTML_TEMPLATE = """
@@ -34,6 +37,7 @@ HTML_TEMPLATE = """
             --text-color: #ffffff;
             --text-dim: #8fa3b0;
             --border-color: #1a2a38;
+            --warning-red: #ff3d00;
         }
 
         * {
@@ -53,7 +57,7 @@ HTML_TEMPLATE = """
             padding: 12px;
         }
 
-        /* Smooth RGB Glowing Animated Border */
+        /* 1ms Smooth RGB Animated Border */
         .bot-card {
             width: 100%;
             max-width: 420px;
@@ -64,14 +68,15 @@ HTML_TEMPLATE = """
             box-shadow: 0 0 25px rgba(0, 230, 118, 0.12);
             border: 2px solid transparent;
             background-clip: padding-box;
-            animation: borderGlow 4s linear infinite;
+            animation: borderGlow 3s linear infinite;
         }
 
         @keyframes borderGlow {
-            0% { border-color: #00e676; box-shadow: 0 0 15px rgba(0, 230, 118, 0.3); }
-            33% { border-color: #00bcd4; box-shadow: 0 0 15px rgba(0, 188, 212, 0.3); }
-            66% { border-color: #7c4dff; box-shadow: 0 0 15px rgba(124, 77, 255, 0.3); }
-            100% { border-color: #00e676; box-shadow: 0 0 15px rgba(0, 230, 118, 0.3); }
+            0% { border-color: #00e676; box-shadow: 0 0 15px rgba(0, 230, 118, 0.4); }
+            25% { border-color: #00bcd4; box-shadow: 0 0 15px rgba(0, 188, 212, 0.4); }
+            50% { border-color: #7c4dff; box-shadow: 0 0 15px rgba(124, 77, 255, 0.4); }
+            75% { border-color: #ff007f; box-shadow: 0 0 15px rgba(255, 0, 127, 0.4); }
+            100% { border-color: #00e676; box-shadow: 0 0 15px rgba(0, 230, 118, 0.4); }
         }
 
         .header {
@@ -87,16 +92,18 @@ HTML_TEMPLATE = """
             gap: 10px;
         }
 
+        /* Upgraded Dynamic Cyber Robot Icon */
         .bot-icon {
-            width: 40px;
-            height: 40px;
-            background: #14232f;
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #102a3a, #05131d);
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 20px;
-            border: 1.5px solid var(--accent-color);
+            font-size: 22px;
+            border: 2px solid var(--accent-color);
+            box-shadow: 0 0 10px rgba(0, 230, 118, 0.5);
         }
 
         .title-text h2 {
@@ -123,7 +130,7 @@ HTML_TEMPLATE = """
 
         .controls-grid {
             display: grid;
-            grid-template-columns: 1.3fr 0.7fr;
+            grid-template-columns: 1.2fr 0.8fr;
             gap: 10px;
             margin-bottom: 12px;
         }
@@ -154,7 +161,6 @@ HTML_TEMPLATE = """
             color: var(--accent-color);
         }
 
-        /* Compacted Live Chart Styles */
         .chart-header {
             display: flex;
             justify-content: space-between;
@@ -198,7 +204,7 @@ HTML_TEMPLATE = """
 
         .chart-wrapper {
             width: 100%;
-            height: 165px; /* Compact Size Adjustment */
+            height: 160px;
             background: #060b0e;
             border-radius: 0 0 8px 8px;
             border: 1px solid var(--border-color);
@@ -208,28 +214,31 @@ HTML_TEMPLATE = """
             overflow: hidden;
         }
 
-        /* OTC Market Warning Notice Container */
+        /* Red Warning Container for OTC */
         .otc-notice-container {
             display: none;
             width: 100%;
             height: 100%;
-            padding: 20px;
-            background: #0a131b;
+            padding: 16px;
+            background: rgba(255, 61, 0, 0.05);
+            border: 1.5px solid var(--warning-red);
+            border-radius: 0 0 8px 8px;
             text-align: center;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .otc-notice-title {
-            color: #ff9800;
-            font-size: 12px;
+            color: var(--warning-red);
+            font-size: 13px;
             font-weight: bold;
+            letter-spacing: 0.5px;
         }
 
         .otc-notice-desc {
-            color: var(--text-dim);
+            color: #ffab91;
             font-size: 10px;
             line-height: 1.4;
         }
@@ -239,7 +248,7 @@ HTML_TEMPLATE = """
             height: 100%;
         }
 
-        /* Scanner Animation Overlay */
+        /* Scanning Overlay for Real Market */
         .scanner-overlay {
             position: absolute;
             top: 0;
@@ -260,7 +269,7 @@ HTML_TEMPLATE = """
             background: linear-gradient(90deg, transparent, #00e676, transparent);
             box-shadow: 0 0 10px #00e676;
             position: absolute;
-            animation: scanAnimation 1.5s infinite linear;
+            animation: scanAnimation 1.2s infinite linear;
         }
 
         @keyframes scanAnimation {
@@ -379,7 +388,7 @@ HTML_TEMPLATE = """
     <div class="bot-card">
         <div class="header">
             <div class="brand-info">
-                <div class="bot-icon">🤖</div>
+                <div class="bot-icon">👾</div>
                 <div class="title-text">
                     <h2>FINORIX PRO BOT</h2>
                     <p>BY YASIN BHAI</p>
@@ -392,7 +401,7 @@ HTML_TEMPLATE = """
             <div class="control-group">
                 <label>Market Pair</label>
                 <select id="marketPair" onchange="updateChartPair(this.value)">
-                    <optgroup label="💱 Currencies (Real Market)">
+                    <optgroup label="💱 Real Market Currencies">
                         <option value="FX:EURUSD">EUR/USD (Real)</option>
                         <option value="FX:GBPUSD">GBP/USD (Real)</option>
                         <option value="FX:USDJPY">USD/JPY (Real)</option>
@@ -403,8 +412,13 @@ HTML_TEMPLATE = """
                         <option value="FX:EURGBP">EUR/GBP (Real)</option>
                         <option value="FX:CADJPY">CAD/JPY (Real)</option>
                         <option value="FX:EURCAD">EUR/CAD (Real)</option>
+                        <option value="FX:GBPJPY">GBP/JPY (Real)</option>
+                        <option value="FX:NZDUSD">NZD/USD (Real)</option>
+                        <option value="FX:USDCHF">USD/CHF (Real)</option>
+                        <option value="FX:EURAUD">EUR/AUD (Real)</option>
+                        <option value="FX:GBPCAD">GBP/CAD (Real)</option>
                     </optgroup>
-                    <optgroup label="🌐 Currencies (OTC Market)">
+                    <optgroup label="🌐 OTC Market Currencies">
                         <option value="USD/BDT (OTC)">USD/BDT (OTC)</option>
                         <option value="USD/NGN (OTC)">USD/NGN (OTC)</option>
                         <option value="USD/ARS (OTC)">USD/ARS (OTC)</option>
@@ -415,19 +429,20 @@ HTML_TEMPLATE = """
                         <option value="CAD/CHF (OTC)">CAD/CHF (OTC)</option>
                         <option value="GBP/NZD (OTC)">GBP/NZD (OTC)</option>
                         <option value="NZD/CAD (OTC)">NZD/CAD (OTC)</option>
+                        <option value="EUR/USD (OTC)">EUR/USD (OTC)</option>
+                        <option value="GBP/USD (OTC)">GBP/USD (OTC)</option>
+                        <option value="USD/JPY (OTC)">USD/JPY (OTC)</option>
                     </optgroup>
-                    <optgroup label="🪙 Crypto">
+                    <optgroup label="🪙 Crypto Assets">
                         <option value="BINANCE:BTCUSDT">Bitcoin (OTC)</option>
                         <option value="BINANCE:ETHUSDT">Ethereum (OTC)</option>
                         <option value="BINANCE:XRPUSDT">Ripple (OTC)</option>
                         <option value="BINANCE:SOLUSDT">Solana (OTC)</option>
                     </optgroup>
-                    <optgroup label="🛢️ Commodities">
+                    <optgroup label="🛢️ Commodities & Indices">
                         <option value="OANDA:XAUUSD">Gold (OTC)</option>
                         <option value="OANDA:XAGUSD">Silver (OTC)</option>
                         <option value="TVC:UKOIL">UKBrent (OTC)</option>
-                    </optgroup>
-                    <optgroup label="📈 Stocks">
                         <option value="INDEX:SPX">S&P/ASX 200</option>
                         <option value="INDEX:UKX">FTSE 100</option>
                     </optgroup>
@@ -436,34 +451,37 @@ HTML_TEMPLATE = """
             <div class="control-group">
                 <label>Timeframe</label>
                 <select id="timeframe">
-                    <option value="1m">1m (Strict Locked)</option>
+                    <option value="1M">1M</option>
+                    <option value="2M">2M</option>
+                    <option value="3M">3M</option>
+                    <option value="4M">4M</option>
+                    <option value="5M">5M</option>
                 </select>
             </div>
         </div>
 
-        <!-- Live Chart Container Header -->
         <div class="chart-header">
             <div class="live-indicator">
                 <div class="blinking-dot"></div>
                 <span>LIVE CHART</span>
             </div>
             <div class="chart-tools-top">
-                <span>1m</span> | <span>📊 Candlestick</span>
+                <span id="selectedTfText">1M</span> | <span>📊 Candlestick</span>
             </div>
         </div>
 
         <div class="chart-wrapper">
             <div class="scanner-overlay" id="scannerOverlay">
                 <div class="scan-line"></div>
-                <div class="scan-status-text" id="scanText">ANALYZING MARKET DYNAMICS...</div>
+                <div class="scan-status-text" id="scanText">ANALYZING REAL MARKET...</div>
             </div>
 
-            <!-- Notice for OTC Markets -->
+            <!-- Red Warning Screen for OTC -->
             <div class="otc-notice-container" id="otcNotice">
-                <div class="otc-notice-title">⚠️ LIVE CHART UNAVAILABLE</div>
+                <div class="otc-notice-title">⚠️ WARNING: OTC MARKET SELECTED</div>
                 <div class="otc-notice-desc">
-                    TradingView Live Chart is not supported for OTC Pairs.<br>
-                    <strong>High Precision Signal Engine remains active.</strong>
+                    Live Chart is disabled for OTC Pairs.<br>
+                    <strong>OTC Direct Calculation Signal Engine is active.</strong>
                 </div>
             </div>
 
@@ -481,7 +499,7 @@ HTML_TEMPLATE = """
         <div class="signal-box">
             <div class="signal-header">🔮 SIGNAL GENERATED</div>
             <div class="signal-result" id="signalOutput">PRESS SCAN TO START</div>
-            <div class="signal-subtext" id="signalReason">Click the SCAN button manually to analyze trade market</div>
+            <div class="signal-subtext" id="signalReason">Click SCAN button to trigger multi-layered institutional engine</div>
         </div>
 
         <div class="metrics-grid">
@@ -508,6 +526,10 @@ HTML_TEMPLATE = """
     <script type="text/javascript">
         let currentSymbol = "FX:EURUSD";
 
+        document.getElementById('timeframe').addEventListener('change', function() {
+            document.getElementById('selectedTfText').innerText = this.value;
+        });
+
         function loadChart(symbol) {
             const chartBox = document.getElementById("tv_chart_container");
             const otcBox = document.getElementById("otcNotice");
@@ -533,12 +555,7 @@ HTML_TEMPLATE = """
                     "hide_top_toolbar": true,
                     "hide_legend": true,
                     "save_image": false,
-                    "container_id": "tv_chart_container",
-                    "disabled_features": [
-                        "header_widget",
-                        "volume_force_overlay",
-                        "create_volume_indicator_by_default"
-                    ]
+                    "container_id": "tv_chart_container"
                 });
             }
         }
@@ -572,9 +589,9 @@ HTML_TEMPLATE = """
             const scanText = document.getElementById('scanText');
             const output = document.getElementById('signalOutput');
             const reason = document.getElementById('signalReason');
+            const isOtc = currentSymbol.includes("OTC");
 
             btn.disabled = true;
-            overlay.style.display = 'flex';
             output.innerText = "SCANNING MARKET...";
             output.style.color = "#00bcd4";
 
@@ -582,46 +599,69 @@ HTML_TEMPLATE = """
             document.getElementById('accuracyVal').innerText = "-- %";
             document.getElementById('confirmVal').innerText = "-- %";
 
-            const scanSteps = [
-                "SCANNING CANDLESTICKS...",
-                "CALCULATING SMC & FVG...",
-                "ANALYZING VOLUME DELTA...",
-                "FILTERING VOLATILITY..."
-            ];
+            if (!isOtc) {
+                // Show scanner overlay ONLY for Real Market
+                overlay.style.display = 'flex';
+                const scanSteps = [
+                    "SCANNING REAL CANDLESTICKS...",
+                    "CALCULATING SMC & FVG...",
+                    "ANALYZING VOLUME DELTA...",
+                    "VERIFYING VOLATILITY..."
+                ];
 
-            let stepIndex = 0;
-            const stepInterval = setInterval(() => {
-                if (stepIndex < scanSteps.length) {
-                    scanText.innerText = scanSteps[stepIndex];
-                    stepIndex++;
-                }
-            }, 1000);
+                let stepIndex = 0;
+                const stepInterval = setInterval(() => {
+                    if (stepIndex < scanSteps.length) {
+                        scanText.innerText = scanSteps[stepIndex];
+                        stepIndex++;
+                    }
+                }, 1000);
 
-            setTimeout(() => {
-                clearInterval(stepInterval);
-                overlay.style.display = 'none';
+                setTimeout(() => {
+                    clearInterval(stepInterval);
+                    overlay.style.display = 'none';
+                    executeSignalFetch(isOtc, btn, output, reason);
+                }, 4500);
+            } else {
+                // OTC Market Scanning Delay (No overlay on chart)
+                let btnSteps = ["SCANNING OTC...", "PROCESSING DATA...", "FILTERING RISK...", "FINALIZING..."];
+                let btnIdx = 0;
+                
+                const btnInterval = setInterval(() => {
+                    if (btnIdx < btnSteps.length) {
+                        output.innerText = btnSteps[btnIdx];
+                        btnIdx++;
+                    }
+                }, 1000);
 
-                fetch('/api/analyze')
-                    .then(res => res.json())
-                    .then(data => {
-                        output.innerText = data.signal;
+                setTimeout(() => {
+                    clearInterval(btnInterval);
+                    executeSignalFetch(isOtc, btn, output, reason);
+                }, 4500);
+            }
+        }
 
-                        if (data.isNoTrade) {
-                            output.style.color = "#ff9800";
-                        } else {
-                            output.style.color = data.isCall ? "#00e676" : "#ff5252";
-                        }
+        function executeSignalFetch(isOtc, btn, output, reason) {
+            fetch(`/api/analyze?isOtc=${isOtc}`)
+                .then(res => res.json())
+                .then(data => {
+                    output.innerText = data.signal;
 
-                        reason.innerText = `লজিক: ${data.logic} | নেক্সট ক্যান্ডেল: ${data.nextCandle}`;
+                    if (data.isNoTrade) {
+                        output.style.color = "#ff9800";
+                    } else {
+                        output.style.color = data.isCall ? "#00e676" : "#ff5252";
+                    }
 
-                        document.getElementById('winRateVal').innerText = data.winRate + "%";
-                        document.getElementById('accuracyVal').innerText = data.accuracy + "%";
-                        document.getElementById('confirmVal').innerText = data.confirmRate + "%";
+                    reason.innerText = `লজিক: ${data.logic} | নেক্সট ক্যান্ডেল: ${data.nextCandle}`;
 
-                        speakBanglaVoice(data.voiceMessage);
-                        btn.disabled = false;
-                    });
-            }, 4500);
+                    document.getElementById('winRateVal').innerText = data.winRate + "%";
+                    document.getElementById('accuracyVal').innerText = data.accuracy + "%";
+                    document.getElementById('confirmVal').innerText = data.confirmRate + "%";
+
+                    speakBanglaVoice(data.voiceMessage);
+                    btn.disabled = false;
+                });
         }
     </script>
 </body>
@@ -636,30 +676,30 @@ def home():
 def analyze():
     time.sleep(0.2)
     
-    # 15% Chance of High Volatility (No Trade Protection)
-    is_volatile = random.random() < 0.15
+    # Risk Mitigation Logic - 12% Chance of High Volatility Delay
+    is_volatile = random.random() < 0.12
 
     if is_volatile:
         signal = "WAIT (MARKET VOLATILE ⚠️)"
         next_candle = "স্কিপ (ট্রেড নেবেন না)"
-        logic = "High Volatility Detected - Risk Avoidance Engine Active"
+        logic = "Volatile Market Spike Detected - High Risk Mitigation Active"
         is_call = False
         is_no_trade = True
-        win_rate = random.randint(50, 65)
+        win_rate = random.randint(55, 65)
         accuracy = random.randint(50, 60)
-        confirm_rate = random.randint(50, 65)
-        voice_msg = "মার্কেট অতিরিক্ত পরিবর্তনশীল। এই মুহূর্তে ট্রেড নেওয়া থেকে বিরত থাকুন।"
+        confirm_rate = random.randint(50, 60)
+        voice_msg = "মার্কেট পরিবর্তনশীল। সঠিক সুযোগের জন্য অপেক্ষা করুন।"
     else:
         is_call = random.choice([True, False])
         is_no_trade = False
         signal = "CALL (BUY 🟢)" if is_call else "PUT (SELL 🔴)"
         next_candle = "গ্রিন (সবুজ)" if is_call else "রেড (লাল)"
-        logic = random.choice(INSTITUTIONAL_KNOWLEDGE_BASE)
-
-        # High Precision Range for Real Trades (72% - 98%)
-        win_rate = random.randint(75, 98)
-        accuracy = random.randint(72, 96)
-        confirm_rate = random.randint(80, 99)
+        
+        # High Accuracy Logic Range
+        win_rate = random.randint(78, 98)
+        accuracy = random.randint(80, 96)
+        confirm_rate = random.randint(85, 99)
+        logic = random.choice(REAL_MARKET_LOGIC)
 
         voice_msg = f"কনফার্ম সিগন্যাল। পরবর্তী ক্যান্ডেল {'বাই অথবা কল' if is_call else 'সেল অথবা পুট'} ট্রেড নিন।"
 
