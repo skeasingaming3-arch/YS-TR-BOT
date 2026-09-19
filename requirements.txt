@@ -1,4 +1,5 @@
-Flask
-gunicorn
-yfinance
-pandas
+flask==3.0.2
+pandas==2.2.0
+numpy==1.26.4
+gunicorn==21.2.0
+
