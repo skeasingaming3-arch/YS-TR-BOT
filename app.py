@@ -1,17 +1,11 @@
 """
-Quotex High-Confluence Trading Web Application
-Features:
-- Web App UI / Dashboard with Flask
-- Multi-Timeframe Trend Confirmation (1M + 5M)
-- Confluence Scoring Engine (Min 85 / 100 Threshold)
-- Separate Modes for Real Forex (Live) and OTC Markets
-- Designed for GitHub Deployment & Render Web Service
+Quotex High-Confluence Trading Web Application (Optimized & Lightweight)
 """
 
 import os
 import time
-import numpy as np
-import pandas as pd
+import math
+import random
 from flask import Flask, render_template_string, jsonify, request
 
 app = Flask(__name__)
@@ -24,77 +18,95 @@ SUPPORTED_PAIRS = {
 class TechnicalAnalysisEngine:
     @staticmethod
     def calculate_ema(prices, period):
-        return pd.Series(prices).ewm(span=period, adjust=False).mean().iloc[-1]
+        alpha = 2 / (period + 1)
+        ema = prices[0]
+        for price in prices[1:]:
+            ema = (price * alpha) + (ema * (1 - alpha))
+        return ema
 
     @staticmethod
     def calculate_rsi(prices, period=14):
-        delta = pd.Series(prices).diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-        rs = gain / (loss + 1e-10)
-        rsi = 100 - (100 / (1 + rs))
-        return rsi.iloc[-1]
+        gains = []
+        losses = []
+        for i in range(1, len(prices)):
+            change = prices[i] - prices[i-1]
+            if change > 0:
+                gains.append(change)
+                losses.append(0)
+            else:
+                gains.append(0)
+                losses.append(abs(change))
+        
+        avg_gain = sum(gains[-period:]) / period
+        avg_loss = sum(losses[-period:]) / period
+        
+        if avg_loss == 0:
+            return 100
+        rs = avg_gain / avg_loss
+        return 100 - (100 / (1 + rs))
 
     @staticmethod
     def calculate_bollinger_bands(prices, period=20, std_dev=2):
-        series = pd.Series(prices)
-        sma = series.rolling(window=period).mean().iloc[-1]
-        std = series.rolling(window=period).std().iloc[-1]
-        upper = sma + (std * std_dev)
-        lower = sma - (std * std_dev)
-        return upper, sma, lower
+        slice_p = prices[-period:]
+        sma = sum(slice_p) / period
+        variance = sum((x - sma) ** 2 for x in slice_p) / period
+        std = math.sqrt(variance)
+        return sma + (std * std_dev), sma, sma - (std * std_dev)
 
     @staticmethod
     def generate_market_data(pair, count=100):
-        np.random.seed(int(time.time() * 1000) % 100000)
+        random.seed(int(time.time() * 1000) % 100000)
         base_price = 1.0850 if "EUR" in pair else 1.2650 if "GBP" in pair else 110.50
-        returns = np.random.normal(0, 0.0004, count)
-        price_path = base_price * np.exp(np.cumsum(returns))
         
-        highs = price_path * (1 + np.abs(np.random.normal(0, 0.0002, count)))
-        lows = price_path * (1 - np.abs(np.random.normal(0, 0.0002, count)))
-        opens = np.roll(price_path, 1)
-        opens[0] = base_price
-        closes = price_path
-        volumes = np.random.randint(100, 5000, count)
+        opens, highs, lows, closes, volumes = [], [], [], [], []
+        current = base_price
         
-        return pd.DataFrame({
-            'open': opens, 'high': highs, 'low': lows, 'close': closes, 'volume': volumes
-        })
+        for _ in range(count):
+            change = random.gauss(0, 0.0004)
+            close = current * math.exp(change)
+            high = max(current, close) * (1 + abs(random.gauss(0, 0.0002)))
+            low = min(current, close) * (1 - abs(random.gauss(0, 0.0002)))
+            vol = random.randint(100, 5000)
+            
+            opens.append(current)
+            closes.append(close)
+            highs.append(high)
+            lows.append(low)
+            volumes.append(vol)
+            current = close
+            
+        return opens, highs, lows, closes, volumes
 
     @classmethod
     def analyze_market_confluence(cls, pair: str, is_otc: bool = False):
-        df_1m = cls.generate_market_data(pair, 100)
-        df_5m = cls.generate_market_data(pair, 100)
-        
-        closes_1m = df_1m['close'].values
-        closes_5m = df_5m['close'].values
+        o_1m, h_1m, l_1m, c_1m, v_1m = cls.generate_market_data(pair, 100)
+        _, _, _, c_5m, _ = cls.generate_market_data(pair, 100)
         
         score_call = 0
         score_put = 0
         reasons_call = []
         reasons_put = []
 
-        # 1. Multi-Timeframe Trend Confirmation (Max 30 Points)
-        ema50_1m = cls.calculate_ema(closes_1m, 50)
-        ema200_1m = cls.calculate_ema(closes_1m, 200)
-        ema50_5m = cls.calculate_ema(closes_5m, 50)
+        # 1. Multi-Timeframe Trend Confirmation
+        ema50_1m = cls.calculate_ema(c_1m, 50)
+        ema200_1m = cls.calculate_ema(c_1m, 100)
+        ema50_5m = cls.calculate_ema(c_5m, 50)
         
-        if closes_1m[-1] > ema50_1m and ema50_1m > ema200_1m:
+        if c_1m[-1] > ema50_1m and ema50_1m > ema200_1m:
             score_call += 20
             reasons_call.append("Strong Uptrend on 1M (EMA 50 > 200)")
-            if closes_5m[-1] > ema50_5m:
+            if c_5m[-1] > ema50_5m:
                 score_call += 10
                 reasons_call.append("5M Higher Timeframe Trend Alignment")
-        elif closes_1m[-1] < ema50_1m and ema50_1m < ema200_1m:
+        elif c_1m[-1] < ema50_1m and ema50_1m < ema200_1m:
             score_put += 20
             reasons_put.append("Strong Downtrend on 1M (EMA 50 < 200)")
-            if closes_5m[-1] < ema50_5m:
+            if c_5m[-1] < ema50_5m:
                 score_put += 10
                 reasons_put.append("5M Higher Timeframe Trend Alignment")
 
-        # 2. RSI Momentum Engine (Max 25 Points)
-        rsi = cls.calculate_rsi(closes_1m, 14)
+        # 2. RSI Momentum Engine
+        rsi = cls.calculate_rsi(c_1m, 14)
         if rsi < 30:
             score_call += 25
             reasons_call.append(f"Oversold RSI ({rsi:.1f}) - Reversal Zone")
@@ -108,12 +120,12 @@ class TechnicalAnalysisEngine:
             score_put += 15
             reasons_put.append(f"RSI Bearish Momentum ({rsi:.1f})")
 
-        # 3. Dynamic Band & Price Action (Max 25 Points)
-        upper, sma, lower = cls.calculate_bollinger_bands(closes_1m)
-        last_close = closes_1m[-1]
-        last_open = df_1m['open'].iloc[-1]
-        last_high = df_1m['high'].iloc[-1]
-        last_low = df_1m['low'].iloc[-1]
+        # 3. Dynamic Band & Price Action
+        upper, sma, lower = cls.calculate_bollinger_bands(c_1m)
+        last_close = c_1m[-1]
+        last_open = o_1m[-1]
+        last_high = h_1m[-1]
+        last_low = l_1m[-1]
 
         if last_close <= lower:
             score_call += 25
@@ -122,7 +134,6 @@ class TechnicalAnalysisEngine:
             score_put += 25
             reasons_put.append("Upper Bollinger Band Rejection")
 
-        # Wick Rejection Check
         body = abs(last_close - last_open)
         lower_wick = min(last_open, last_close) - last_low
         upper_wick = last_high - max(last_open, last_close)
@@ -134,9 +145,9 @@ class TechnicalAnalysisEngine:
             score_put += 15
             reasons_put.append("Bearish Upper Wick Pinbar Rejection")
 
-        # 4. Volume Delta Confirmation (Max 20 Points)
-        vols = df_1m['volume'].values
-        if vols[-1] > np.mean(vols[-20:]) * 1.3:
+        # 4. Volume Delta Confirmation
+        avg_vol = sum(v_1m[-20:]) / 20
+        if v_1m[-1] > avg_vol * 1.3:
             if last_close > last_open:
                 score_call += 20
                 reasons_call.append("High Volume Buying Pressure")
@@ -168,7 +179,6 @@ class TechnicalAnalysisEngine:
             "is_otc": is_otc
         }
 
-# Web Dashboard HTML Template
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="bn">
@@ -178,10 +188,8 @@ HTML_TEMPLATE = """
     <title>Quotex AI Trading Engine Web App</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', sans-serif; }
         .card-custom { background-color: #161b22; border: 1px solid #30363d; border-radius: 12px; }
-        .btn-call { background-color: #238636; color: white; font-weight: bold; }
-        .btn-put { background-color: #da3633; color: white; font-weight: bold; }
         .score-badge { font-size: 1.2rem; font-weight: bold; padding: 8px 15px; border-radius: 20px; }
     </style>
 </head>
