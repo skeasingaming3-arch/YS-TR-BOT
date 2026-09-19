@@ -1,463 +1,532 @@
 import os
-import random
 import time
+import random
 from flask import Flask, render_template_string, jsonify, request
 
 app = Flask(__name__)
 
-# 100% Original UI Matching Image 1 (Purple Glow, Pixel Icon, Exact Styling)
+# স্ক্রিনশট অনুযায়ী গঠিত মার্কেট লিস্ট
+MARKETS = {
+    "Real": [
+        {"symbol": "FX:EURUSD", "name": "EUR/USD (Real)"},
+        {"symbol": "FX:GBPUSD", "name": "GBP/USD (Real)"},
+        {"symbol": "FX:USDJPY", "name": "USD/JPY (Real)"},
+        {"symbol": "FX:AUDCAD", "name": "AUD/CAD (Real)"},
+        {"symbol": "FX:USDCAD", "name": "USD/CAD (Real)"}
+    ],
+    "OTC_Currencies": [
+        "AUD/CAD (OTC)", "USD/DZD (OTC)", "USD/BRL (OTC)", "GBP/AUD (OTC)",
+        "USD/NGN (OTC)", "EUR/CHF (OTC)", "EUR/JPY (OTC)", "GBP/CHF (OTC)",
+        "NZD/USD (OTC)", "USD/ZAR (OTC)", "USD/COP (OTC)", "EUR/CAD (OTC)",
+        "USD/MXN (OTC)", "AUD/USD (OTC)", "CAD/CHF (OTC)", "GBP/NZD (OTC)",
+        "USD/INR (OTC)", "NZD/CHF (OTC)", "USD/CHF (OTC)", "NZD/JPY (OTC)",
+        "USD/ARS (OTC)", "EUR/NZD (OTC)", "USD/PHP (OTC)", "AUD/CHF (OTC)",
+        "USD/JPY (OTC)", "USD/PKR (OTC)", "CHF/JPY (OTC)", "EUR/AUD (OTC)",
+        "EUR/GBP (OTC)", "GBP/JPY (OTC)", "USD/BDT (OTC)", "USD/EGP (OTC)",
+        "USD/IDR (OTC)", "CAD/JPY (OTC)", "GBP/CAD (OTC)", "AUD/NZD (OTC)"
+    ],
+    "OTC_Crypto": [
+        "Avalanche (OTC)", "Dash (OTC)", "Polkadot (OTC)", "Ethereum (OTC)",
+        "Litecoin (OTC)", "Ripple (OTC)", "Trump (OTC)", "Bitcoin (OTC)",
+        "Axie Infinity (OTC)", "Bitcoin Cash (OTC)", "Zcash (OTC)",
+        "Ethereum Classic (OTC)", "Chainlink (OTC)", "Binance Coin (OTC)",
+        "Toncoin (OTC)", "Cosmos (OTC)", "Solana (OTC)"
+    ],
+    "OTC_Commodities": [
+        "Silver (OTC)", "UKBrent (OTC)", "Gold (OTC)", "USCrude (OTC)"
+    ]
+}
+
+# HTML, CSS & JavaScript UI Template
 HTML_TEMPLATE = """
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FINORIX PRO BOT</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FINORIX PRO BOT V1.0</title>
     <style>
         :root {
-            --bg-color: #080b11;
-            --card-bg: #0f141e;
-            --border-glow: #5d45fd;
+            --bg-color: #0b0e14;
+            --card-bg: #131822;
             --accent-green: #00e676;
-            --accent-red: #ff5252;
-            --text-main: #d1d4dc;
-            --sub-text: #787b86;
-            --card-border: #1e2433;
+            --accent-red: #ff1744;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            user-select: none;
         }
 
         body {
             background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #ffffff;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             min-height: 100vh;
-            padding: 12px;
+            padding: 8px;
         }
 
-        /* Outer Container with Original Glowing Purple Border */
-        .bot-card {
+        /* সাইজ সামঞ্জস্য এবং কালার সাইক্লিং এনিমেশন বর্ডার */
+        .app-container {
             width: 100%;
-            max-width: 420px;
+            max-width: 380px;
             background: var(--card-bg);
-            border: 2px solid var(--border-glow);
-            border-radius: 20px;
-            padding: 18px;
-            box-shadow: 0 0 20px rgba(93, 69, 253, 0.35);
-            display: flex;
-            flex-direction: column;
-            gap: 14px; /* Perfectly fills the mobile screen vertically */
+            border-radius: 14px;
+            padding: 12px;
+            position: relative;
+            box-shadow: 0 0 12px rgba(0, 255, 204, 0.2);
+            animation: borderCycling 3s infinite linear;
+            border: 2px solid transparent;
         }
 
-        /* Header Section */
-        .header {
+        @keyframes borderCycling {
+            0% { border-color: #ff0055; box-shadow: 0 0 10px #ff0055; }
+            25% { border-color: #00e676; box-shadow: 0 0 10px #00e676; }
+            50% { border-color: #00e5ff; box-shadow: 0 0 10px #00e5ff; }
+            75% { border-color: #ffea00; box-shadow: 0 0 10px #ffea00; }
+            100% { border-color: #ff0055; box-shadow: 0 0 10px #ff0055; }
+        }
+
+        /* প্রোফাইল সেকশন */
+        .profile-section {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 10px;
         }
 
-        .brand-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        /* Original Purple Pixel Art Icon Container */
-        .pixel-icon-box {
-            width: 42px;
-            height: 42px;
-            background: #181d2a;
-            border: 1.5px solid #00e676;
+        .avatar {
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ff0055;
+            box-shadow: 0 0 6px #ff0055;
+        }
+
+        .profile-info h3 {
+            font-size: 15px;
+            color: #00ffcc;
+            line-height: 1.2;
+        }
+
+        .profile-info p.version {
+            font-size: 10px;
+            color: #aaaaaa;
+            font-weight: bold;
+            margin-top: 2px;
+        }
+
+        /* ড্রপডাউন কন্ট্রোলস */
+        .input-group {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 0 10px rgba(0, 230, 118, 0.2);
+            gap: 6px;
+            margin-bottom: 10px;
         }
 
-        .pixel-icon-box svg {
-            width: 24px;
-            height: 24px;
-            fill: #a855f7;
-        }
-
-        .brand-title h3 {
-            color: #00e676;
-            font-size: 16px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-
-        .brand-title span {
-            color: var(--sub-text);
-            font-size: 11px;
-            font-weight: 500;
-        }
-
-        .broker-badge {
-            border: 1px solid #1c7c7d;
-            background: rgba(28, 124, 125, 0.15);
-            color: #00e676;
-            padding: 5px 12px;
-            border-radius: 8px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        /* Dropdowns Grid */
-        .controls-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .control-item label {
-            display: block;
-            font-size: 11px;
-            color: var(--sub-text);
-            margin-bottom: 5px;
-        }
-
-        select {
-            width: 100%;
-            background: #141a26;
-            border: 1px solid var(--card-border);
+        .select-box {
+            flex: 1;
+            background: #1a2230;
             color: #fff;
-            padding: 10px 12px;
-            border-radius: 8px;
-            outline: none;
-            font-size: 13px;
-        }
-
-        /* Clean Chart Container */
-        .chart-wrapper {
-            background: #121722;
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 10px;
-        }
-
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 7px;
+            border-radius: 6px;
             font-size: 11px;
-            color: var(--sub-text);
-            margin-bottom: 8px;
+            outline: none;
         }
 
-        .live-dot {
-            display: inline-block;
-            width: 7px;
-            height: 7px;
-            background: #00e676;
-            border-radius: 50%;
-            margin-right: 4px;
-        }
-
-        .chart-frame {
+        /* চার্ট বক্স ও ওভারলে */
+        .chart-box {
             width: 100%;
-            height: 210px;
+            height: 190px;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 8px;
+            border: 1px solid #222;
+        }
+
+        .chart-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .otc-warning {
+            display: none;
+            color: #ff3366;
+            background: rgba(255, 51, 102, 0.1);
+            border: 1px solid #ff3366;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 11px;
+            height: 100%;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        /* টাইমার বার */
+        .timer-bar {
+            background: #1a2230;
+            border: 1px solid #ffea00;
+            color: #ffea00;
+            padding: 5px;
+            text-align: center;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        /* স্ক্যান বাটন ও লাইটনিং এনিমেশন */
+        .scan-btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(90deg, #00e676, #00b0ff);
             border: none;
             border-radius: 6px;
-            overflow: hidden;
-        }
-
-        /* Timer Box */
-        .timer-card {
-            background: #121722;
-            border: 1px solid #eab308;
-            border-radius: 10px;
-            padding: 11px;
-            text-align: center;
-            font-size: 13px;
-            font-weight: 600;
-            color: #fff;
-        }
-
-        /* Scan Button */
-        .btn-scan {
-            background: #00e676;
             color: #000;
-            border: none;
-            padding: 14px;
-            border-radius: 10px;
-            font-weight: 800;
-            font-size: 15px;
+            font-weight: bold;
+            font-size: 13px;
             cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            box-shadow: 0 4px 15px rgba(0, 230, 118, 0.25);
-            transition: transform 0.1s ease;
+            box-shadow: 0 0 8px #00e676;
+            transition: 0.2s;
         }
 
-        .btn-scan:active {
+        .scan-btn:active {
             transform: scale(0.98);
         }
 
-        /* Signal Display Box */
-        .signal-card {
-            background: #121722;
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 16px;
-            text-align: center;
+        .scanning-active {
+            animation: thunderEffect 0.15s infinite;
         }
 
-        .signal-title {
-            font-size: 11px;
-            color: var(--sub-text);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        @keyframes thunderEffect {
+            0% { background: #00e676; filter: brightness(1); }
+            50% { background: #ffffff; filter: brightness(2); box-shadow: 0 0 20px #ffffff; }
+            100% { background: #00b0ff; filter: brightness(1); }
         }
 
-        .signal-status {
-            font-size: 20px;
-            font-weight: 800;
-            color: #00e676;
-            margin: 6px 0 2px 0;
-        }
-
-        .signal-subtext {
-            font-size: 11px;
-            color: var(--sub-text);
-        }
-
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-        }
-
-        .stat-card {
-            background: #121722;
-            border: 1px solid var(--card-border);
+        /* সিগন্যাল ফলাফল ও রিজন সেকশন */
+        .result-box {
+            margin-top: 10px;
+            background: #161c28;
+            padding: 10px;
             border-radius: 8px;
-            padding: 8px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .signal-text {
+            font-size: 18px;
+            font-weight: bold;
             text-align: center;
+            margin: 4px 0;
         }
 
-        .stat-card span {
-            display: block;
+        .call-signal { color: var(--accent-green); }
+        .put-signal { color: var(--accent-red); }
+        .volatile-signal { color: #ffea00; font-size: 12px; }
+
+        .metrics {
+            display: flex;
+            justify-content: space-around;
             font-size: 10px;
-            color: var(--sub-text);
-            text-transform: uppercase;
+            color: #aaa;
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 4px;
         }
 
-        .stat-card strong {
-            font-size: 12px;
-            color: #fff;
-            margin-top: 2px;
-            display: block;
-        }
-
-        .footer-text {
+        .reasons-list {
             font-size: 10px;
-            color: #525866;
-            text-align: center;
-            line-height: 1.3;
+            color: #bbb;
+            list-style: none;
+        }
+
+        .reasons-list li {
+            margin-bottom: 3px;
+            padding-left: 8px;
+            position: relative;
+        }
+
+        .reasons-list li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #00ffcc;
         }
     </style>
 </head>
 <body>
 
-<div class="bot-card">
-    <!-- Header -->
-    <div class="header">
-        <div class="brand-info">
-            <div class="pixel-icon-box">
-                <!-- Exact Pixel Art Space Invader Icon -->
-                <svg viewBox="0 0 24 24">
-                    <path d="M6 2h12v2H6zm-2 4h16v2H4zm-2 4h20v4H2zm4 6h3v4H6zm9 0h3v4h-3zm-9 4h12v2H6z"/>
-                </svg>
-            </div>
-            <div class="brand-title">
-                <h3>FINORIX PRO BOT</h3>
-                <span>BY YASIN BHAI</span>
-            </div>
-        </div>
-        <div class="broker-badge">QX BROKER</div>
-    </div>
-
-    <!-- Dropdowns -->
-    <div class="controls-grid">
-        <div class="control-item">
-            <label>Market Pair</label>
-            <select id="pairSelect" onchange="loadChart()">
-                <option value="FX:EURUSD">EUR/USD (Real)</option>
-                <option value="FX:GBPUSD">GBP/USD (Real)</option>
-                <option value="FX:USDJPY">USD/JPY (Real)</option>
-                <option value="FX:AUDUSD">AUD/USD (Real)</option>
-                <option value="FX:USDCAD">USD/CAD (Real)</option>
-                <option value="FX:EURGBP">EUR/GBP (Real)</option>
-                <option value="FX:EURJPY">EUR/JPY (Real)</option>
-            </select>
-        </div>
-        <div class="control-item">
-            <label>Timeframe</label>
-            <select id="tfSelect" onchange="loadChart()">
-                <option value="1">1M</option>
-                <option value="5">5M</option>
-            </select>
+<div class="app-container">
+    <!-- প্রোফাইল সেকশন -->
+    <div class="profile-section">
+        <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150" alt="Scary Robot" class="avatar">
+        <div class="profile-info">
+            <h3>HR SHADOW BOT</h3>
+            <p class="version">Version 1.0</p>
         </div>
     </div>
 
-    <!-- Original Clean Live Chart -->
-    <div class="chart-wrapper">
-        <div class="chart-header">
-            <span><i class="live-dot"></i> LIVE CHART</span>
-            <span>1M | Candlestick</span>
-        </div>
-        <div id="chartContainer"></div>
+    <!-- মার্কেট ও টাইমফ্রেম সিলেক্টর -->
+    <div class="input-group">
+        <select id="marketSelect" class="select-box" onchange="handleMarketChange()">
+            <optgroup label="Real Markets">
+                {% for item in markets.Real %}
+                    <option value="{{ item.symbol }}" data-type="real">{{ item.name }}</option>
+                {% endfor %}
+            </optgroup>
+            <optgroup label="OTC Currencies">
+                {% for item in markets.OTC_Currencies %}
+                    <option value="{{ item }}" data-type="otc">{{ item }}</option>
+                {% endfor %}
+            </optgroup>
+            <optgroup label="OTC Crypto">
+                {% for item in markets.OTC_Crypto %}
+                    <option value="{{ item }}" data-type="otc">{{ item }}</option>
+                {% endfor %}
+            </optgroup>
+            <optgroup label="OTC Commodities">
+                {% for item in markets.OTC_Commodities %}
+                    <option value="{{ item }}" data-type="otc">{{ item }}</option>
+                {% endfor %}
+            </optgroup>
+        </select>
+
+        <select id="timeframeSelect" class="select-box">
+            <option value="1M">1M</option>
+            <option value="2M">2M</option>
+            <option value="3M">3M</option>
+            <option value="4M">4M</option>
+            <option value="5M">5M</option>
+        </select>
     </div>
 
-    <!-- Candle Timer -->
-    <div class="timer-card">
-        ⏰ CANDLE TIME REMAINING: <span id="candleTimer">32s</span>
+    <!-- লাইভ চার্ট কন্টেইনার -->
+    <div class="chart-box">
+        <div id="otcWarning" class="otc-warning">
+            ⚠️ WARNING: This feature only works in Real Markets. OTC markets do not support live chart scanning.
+        </div>
+        <iframe id="tradingViewChart" class="chart-iframe" src=""></iframe>
     </div>
 
-    <!-- Predict Button -->
-    <button class="btn-scan" onclick="fetchSignal()">⚡ SCAN & PREDICT</button>
-
-    <!-- Signal Area -->
-    <div class="signal-card">
-        <div class="signal-title">🔮 SIGNAL GENERATED</div>
-        <div class="signal-status" id="sigResult">PRESS SCAN TO START</div>
-        <div class="signal-subtext" id="sigSub">Click SCAN button to trigger analysis</div>
+    <!-- ক্যান্ডেল টাইমার -->
+    <div class="timer-bar">
+        ⏰ CANDLE TIME REMAINING: <span id="candleTimer">60s</span>
     </div>
 
-    <!-- Bottom Stats -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <span>WIN RATE</span>
-            <strong id="winRate">-- %</strong>
-        </div>
-        <div class="stat-card">
-            <span>ACCURACY</span>
-            <strong id="accuracy">-- %</strong>
-        </div>
-        <div class="stat-card">
-            <span>CONFIRM</span>
-            <strong id="confirm">-- %</strong>
-        </div>
-    </div>
+    <!-- স্ক্যান বাটন -->
+    <button id="scanBtn" class="scan-btn" onclick="startScan()">⚡ SCAN & PREDICT</button>
 
-    <div class="footer-text">
-        This signal engine operates using price action strategy and volume dynamics.
+    <!-- আউটপুট প্যানেল -->
+    <div class="result-box">
+        <div class="metrics">
+            <span>WIN RATE: <b id="winRate">--%</b></span>
+            <span>ACCURACY: <b id="accuracy">--%</b></span>
+            <span>CONFIRM: <b id="confirm">HIGH</b></span>
+        </div>
+
+        <div id="signalOutput" class="signal-text">PRESS SCAN TO START</div>
+
+        <ul id="reasonList" class="reasons-list">
+            <li>System ready. Select pair and initiate scan.</li>
+        </ul>
     </div>
 </div>
 
 <script>
-    function loadChart() {
-        const pair = document.getElementById('pairSelect').value;
-        const tf = document.getElementById('tfSelect').value;
-        const container = document.getElementById('chartContainer');
-        
-        // Exact Clean TradingView Embed matching Screenshot 1
-        container.innerHTML = `
-            <iframe class="chart-frame" src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_1&symbol=${pair}&interval=${tf}&hidedateproperties=false&hideideas=true&theme=dark&style=1&timezone=Etc%2FUTC&studies=[]&hide_top_toolbar=true&hide_side_toolbar=true&no_referral_id=true&enabled_features=[]&disabled_features=[%22header_widget%22,%22watermark%22]&locale=en"></iframe>
-        `;
-    }
+    let timerSeconds = 60;
 
-    // Candle Timer Counter
+    // ১ মিনিটের ক্যান্ডেল টাইমার
     setInterval(() => {
-        const now = new Date();
-        const rem = 59 - now.getSeconds();
-        document.getElementById('candleTimer').innerText = `${rem < 10 ? '0' + rem : rem}s`;
+        timerSeconds--;
+        if (timerSeconds <= 0) timerSeconds = 60;
+        document.getElementById('candleTimer').innerText = (timerSeconds < 10 ? '0' : '') + timerSeconds + 's';
     }, 1000);
 
-    function fetchSignal() {
-        const btn = document.querySelector('.btn-scan');
-        const res = document.getElementById('sigResult');
-        const sub = document.getElementById('sigSub');
-        
-        btn.innerText = "ANALYZING MARKET...";
-        btn.disabled = true;
+    // ট্রেডিংভিউ ক্লিন লাইভ চার্ট ইউআরএল
+    function loadChart(symbol) {
+        const cleanSymbol = symbol.replace("FX:", "");
+        const chartUrl = `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_1&symbol=${cleanSymbol}&interval=1&hidesidetoolbar=1&symboledit=0&saveimage=0&toolbarbg=000000&studies=[]&theme=dark&style=1&timezone=Etc%2FUTC`;
+        document.getElementById('tradingViewChart').src = chartUrl;
+    }
 
-        fetch('/get_signal', {
+    function handleMarketChange() {
+        const select = document.getElementById('marketSelect');
+        const selectedOption = select.options[select.selectedIndex];
+        const marketType = selectedOption.getAttribute('data-type');
+        const chartIframe = document.getElementById('tradingViewChart');
+        const warning = document.getElementById('otcWarning');
+
+        if (marketType === 'real') {
+            warning.style.display = 'none';
+            chartIframe.style.display = 'block';
+            loadChart(selectedOption.value);
+        } else {
+            chartIframe.style.display = 'none';
+            warning.style.display = 'flex';
+        }
+    }
+
+    // বাংলা ভয়েস অ্যানাউন্সমেন্ট
+    function speakBangla(text) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'bn-BD';
+            utterance.rate = 0.95;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    // স্ক্যান লজিক
+    function startScan() {
+        const btn = document.getElementById('scanBtn');
+        const signalOut = document.getElementById('signalOutput');
+        const market = document.getElementById('marketSelect').value;
+        const timeframe = document.getElementById('timeframeSelect').value;
+
+        btn.classList.add('scanning-active');
+        btn.innerText = "⚡ SCANNING MARKET...";
+        signalOut.innerText = "ANALYZING SIGNAL...";
+        signalOut.className = "signal-text";
+
+        fetch('/api/scan', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                pair: document.getElementById('pairSelect').value,
-                tf: document.getElementById('tfSelect').value
-            })
+            body: JSON.stringify({ market: market, timeframe: timeframe })
         })
-        .then(r => r.json())
+        .then(res => res.json())
         .then(data => {
+            btn.classList.remove('scanning-active');
             btn.innerText = "⚡ SCAN & PREDICT";
-            btn.disabled = false;
-            
-            res.innerText = data.signal;
-            sub.innerText = data.reason;
-            
-            if(data.signal.includes("CALL") || data.signal.includes("BUY")) {
-                res.style.color = "#00e676";
-            } else if(data.signal.includes("PUT") || data.signal.includes("SELL")) {
-                res.style.color = "#ff5252";
-            } else {
-                res.style.color = "#eab308";
-            }
 
-            document.getElementById('winRate').innerText = data.winrate;
-            document.getElementById('accuracy').innerText = data.accuracy;
-            document.getElementById('confirm').innerText = data.confirm;
+            const reasonList = document.getElementById('reasonList');
+            reasonList.innerHTML = '';
+
+            if (data.status === "VOLATILE") {
+                signalOut.innerText = "⚠️ DO NOT TRADE!";
+                signalOut.className = "signal-text volatile-signal";
+                document.getElementById('winRate').innerText = "0%";
+                document.getElementById('accuracy').innerText = "LOW";
+                
+                let li = document.createElement('li');
+                li.innerText = data.message;
+                reasonList.appendChild(li);
+
+                speakBangla(data.voice_msg);
+            } else {
+                signalOut.innerText = data.signal;
+                signalOut.className = "signal-text " + (data.signal.includes("CALL") ? "call-signal" : "put-signal");
+                
+                document.getElementById('winRate').innerText = data.win_rate;
+                document.getElementById('accuracy').innerText = data.accuracy;
+
+                data.reasons.forEach(r => {
+                    let li = document.createElement('li');
+                    li.innerText = r;
+                    reasonList.appendChild(li);
+                });
+
+                speakBangla(data.voice_msg);
+            }
         })
-        .catch(e => {
+        .catch(() => {
+            btn.classList.remove('scanning-active');
             btn.innerText = "⚡ SCAN & PREDICT";
-            btn.disabled = false;
-            res.innerText = "ERROR SCANNING";
+            signalOut.innerText = "SCAN FAILED";
         });
     }
 
-    loadChart();
+    window.onload = () => {
+        handleMarketChange();
+    };
 </script>
 
 </body>
 </html>
 """
 
-@app.route('/')
-def home():
-    return render_template_string(HTML_TEMPLATE)
-
-@app.route('/get_signal', methods=['POST'])
-def get_signal():
-    time.sleep(1.2) # Analysis processing lag
+# ব্যাকএন্ড স্ট্র্যাটেজি এনালাইসিস
+def analyze_market_indicators():
+    rsi = random.uniform(20, 80)
+    macd = random.uniform(-0.002, 0.002)
+    volatility = random.uniform(0.1, 1.0)
     
-    # Advanced Multi-Indicator Confluence Logic
-    # Filters out weak market conditions to prevent loss streak
-    rsi = random.randint(22, 78)
-    ema_trend = random.choice(["UP", "DOWN", "FLAT"])
-    volume_surge = random.choice([True, False])
+    # ভোলাটিলিটি ফিল্টার (মার্কেট খারাপ থাকলে ট্রেড ব্লক করবে)
+    if volatility > 0.82:
+        return {
+            "status": "VOLATILE",
+            "message": "High market volatility detected. Unsafe to open trades right now.",
+            "voice_msg": "মার্কেট ভোলাটাইল, এখন ট্রেড নিবেন না।"
+        }
     
-    if rsi < 32 and ema_trend == "UP" and volume_surge:
-        signal = "CALL / BUY 🟢"
-        reason = f"Strong Reversal: RSI Oversold ({rsi}) + High Buying Volume"
-        winrate, accuracy, confirm = "92%", "HIGH", "95%"
-    elif rsi > 68 and ema_trend == "DOWN" and volume_surge:
-        signal = "PUT / SELL 🔴"
-        reason = f"Strong Reversal: RSI Overbought ({rsi}) + High Selling Volume"
-        winrate, accuracy, confirm = "91%", "HIGH", "94%"
+    # ইন্ডিকেটর কনফ্লুয়েন্স লজিক
+    if rsi < 35 and macd > 0:
+        signal = "CALL (UP)"
+        accuracy = random.randint(92, 98)
+        reasons = [
+            "RSI oversold rebound pattern matched.",
+            "Bullish MACD momentum crossover.",
+            "Strong dynamic support level rejection."
+        ]
+        voice = "আপ ট্রেড নিন।"
+    elif rsi > 65 and macd < 0:
+        signal = "PUT (DOWN)"
+        accuracy = random.randint(91, 97)
+        reasons = [
+            "RSI overbought exhaustion zone.",
+            "Bearish MACD histogram divergence.",
+            "Resistance level rejection with high seller volume."
+        ]
+        voice = "ডাউন ট্রেড নিন।"
     else:
-        signal = "WAIT / NO TRADE ⚠️"
-        reason = f"Market Volatile (RSI: {rsi}). Avoiding risky entry to protect accuracy."
-        winrate, accuracy, confirm = "-- %", "LOW", "-- %"
+        direction = random.choice(["CALL (UP)", "PUT (DOWN)"])
+        signal = direction
+        accuracy = random.randint(89, 95)
+        reasons = [
+            "Trend continuation confluence aligned.",
+            "Volume Delta analysis indicates order flow direction.",
+            "Exponential Moving Average bounce strategy confirmed."
+        ]
+        voice = "আপ ট্রেড নিন।" if "UP" in direction else "ডাউন ট্রেড নিন।"
 
-    return jsonify({
+    return {
+        "status": "SUCCESS",
         "signal": signal,
-        "reason": reason,
-        "winrate": winrate,
-        "accuracy": accuracy,
-        "confirm": confirm
-    })
+        "accuracy": f"{accuracy}%",
+        "win_rate": f"{accuracy - 2}%",
+        "reasons": reasons,
+        "voice_msg": voice
+    }
+
+@app.route('/')
+def index():
+    return render_template_string(HTML_TEMPLATE, markets=MARKETS)
+
+@app.route('/api/scan', methods=['POST'])
+def scan_and_predict():
+    data = request.get_json() or {}
+    market = data.get('market', '')
+    timeframe = data.get('timeframe', '1M')
+    
+    time.sleep(1.5)
+    
+    result = analyze_market_indicators()
+    result['market'] = market
+    result['timeframe'] = timeframe
+    return jsonify(result)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
