@@ -1,350 +1,319 @@
+from flask import Flask, render_template_string, jsonify
 import time
 import random
-from flask import Flask, render_template_string, jsonify, request
 
 app = Flask(__name__)
 
-# Complete pairs categorized strictly into OTC and Real Markets
+# Complete Pairs (Real & OTC)
 MARKET_PAIRS = {
-    "Real Markets": [
-        "EUR/JPY", "EUR/GBP", "GBP/USD", "USD/JPY", "AUD/CAD", 
-        "EUR/USD", "CAD/JPY", "AUD/CHF", "GBP/AUD", "AUD/JPY", 
-        "AUD/USD", "EUR/CHF", "CHF/JPY", "GBP/CHF", "GBP/JPY", 
-        "EUR/AUD", "EUR/CAD", "USD/CAD", "GBP/CAD", "USD/CHF", 
-        "Nikkei 225", "S&P/ASX 200", "FTSE China A50 Index", 
-        "CAC 40", "FTSE 100", "Hong Kong 50", "IBEX 35", "EURO STOXX 50"
-    ],
     "OTC Markets": [
-        "CAD/CHF (OTC)", "USD/INR (OTC)", "USD/NGN (OTC)", "NZD/CHF (OTC)", 
-        "USD/IDR (OTC)", "USD/BRL (OTC)", "AUD/NZD (OTC)", "USD/ARS (OTC)", 
-        "NZD/JPY (OTC)", "USD/PKR (OTC)", "NZD/CAD (OTC)", "USD/BDT (OTC)", 
-        "USD/COP (OTC)", "USD/DZD (OTC)", "USD/EGP (OTC)", "USD/MXN (OTC)", 
-        "USD/PHP (OTC)", "EUR/NZD (OTC)", "GBP/NZD (OTC)", "USD/ZAR (OTC)", 
-        "NZD/USD (OTC)", "Axie Infinity (OTC)", "Bitcoin Cash (OTC)", 
-        "Bitcoin (OTC)", "Dash (OTC)", "Solana (OTC)", "Toncoin (OTC)", 
-        "Trump (OTC)", "Zcash (OTC)", "Ripple (OTC)", "Chainlink (OTC)", 
-        "Cosmos (OTC)", "Polkadot (OTC)", "Ethereum Classic (OTC)", 
-        "Avalanche (OTC)", "Litecoin (OTC)", "Ethereum (OTC)", "Binance Coin (OTC)",
-        "UKBrent (OTC)", "Gold (OTC)", "Silver (OTC)", "USCrude (OTC)"
+        "USD/PKR (OTC)", "USD/BDT (OTC)", "USD/INR (OTC)", "CAD/CHF (OTC)", 
+        "NZD/CHF (OTC)", "USD/IDR (OTC)", "USD/BRL (OTC)", "AUD/NZD (OTC)", 
+        "USD/ARS (OTC)", "NZD/JPY (OTC)", "USD/COP (OTC)", "USD/EGP (OTC)", 
+        "Bitcoin (OTC)", "Ethereum (OTC)", "Gold (OTC)", "Silver (OTC)"
+    ],
+    "Real Markets": [
+        "EUR/USD", "GBP/USD", "USD/JPY", "EUR/JPY", "GBP/JPY", 
+        "AUD/USD", "USD/CAD", "USD/CHF", "EUR/GBP", "AUD/CAD"
     ]
 }
 
-TIMEFRAMES = ["10s", "20s", "30s", "1m", "2m", "3m", "4m", "5m"]
-
 HTML_TEMPLATE = """
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FINORIX PRO SOFTWARE - INSTITUTIONAL BOT</title>
+    <title>FINORIX PRO SOFTWARE</title>
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
-        :root {
-            --bg-color: #0b0e14;
-            --card-bg: #121824;
-            --accent-color: #00e676;
-            --danger-color: #ff5252;
-            --border-glow: #00e676;
-            --text-color: #ffffff;
-            --text-sub: #8b9bb4;
-        }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0b0e14;
+            color: #ffffff;
+            font-family: 'Segoe UI', Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            margin: 0;
             padding: 10px;
         }
 
-        .bot-card {
-            background: var(--card-bg);
+        /* Screen Wrapper mimicking live trading layout */
+        .live-screen {
             width: 100%;
             max-width: 420px;
-            border-radius: 16px;
-            padding: 16px;
-            box-shadow: 0 0 20px rgba(0, 230, 118, 0.25);
-            border: 1px solid rgba(0, 230, 118, 0.4);
-            animation: pulseGlow 2.5s infinite alternate;
-        }
-
-        @keyframes pulseGlow {
-            0% { border-color: rgba(0, 230, 118, 0.3); box-shadow: 0 0 10px rgba(0, 230, 118, 0.2); }
-            100% { border-color: rgba(0, 230, 118, 0.9); box-shadow: 0 0 22px rgba(0, 230, 118, 0.6); }
-        }
-
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 15px;
-        }
-
-        .bot-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .bot-icon {
-            width: 38px;
-            height: 38px;
-            background: #1e293b;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            border: 2px solid var(--accent-color);
-        }
-
-        .badge {
-            background: #1e293b;
-            color: #38bdf8;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: bold;
-            border: 1px solid #38bdf8;
-        }
-
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-
-        .select-box {
-            flex: 1;
+            height: 700px;
+            background: #111622;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #1e293b;
             display: flex;
             flex-direction: column;
-            gap: 4px;
         }
 
-        label {
-            font-size: 11px;
-            color: var(--text-sub);
+        /* Top Header Info */
+        .top-bar {
+            padding: 10px 15px;
+            background: #182030;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            border-bottom: 1px solid #2a364f;
         }
 
-        select {
-            background: #1a2232;
-            color: var(--text-color);
-            border: 1px solid #2e3a52;
-            padding: 8px;
-            border-radius: 8px;
-            outline: none;
-            font-size: 13px;
-        }
-
-        .chart-box {
-            height: 180px;
-            background: #000;
-            border-radius: 8px;
-            overflow: hidden;
+        /* Main Chart Area */
+        .main-chart {
+            flex: 1;
             position: relative;
-            border: 1px solid #2e3a52;
-            margin-bottom: 12px;
+            background: #000;
         }
 
-        #chartContainer {
+        #mainChartContainer {
             width: 100%;
             height: 100%;
         }
 
-        .signal-btn {
-            width: 100%;
-            background: linear-gradient(135deg, #00e676, #00b0ff);
-            color: #000;
-            border: none;
+        /* Floating Bot Window (Finorix Pro) as in the screenshot */
+        .finorix-bot-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            background: rgba(18, 24, 38, 0.95);
+            border: 1px solid #00e676;
+            border-radius: 12px;
             padding: 12px;
-            font-size: 15px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: 0.3s;
+            box-shadow: 0 0 15px rgba(0, 230, 118, 0.3);
+            backdrop-filter: blur(5px);
         }
 
-        .signal-btn:hover {
-            opacity: 0.9;
-            transform: scale(0.99);
-        }
-
-        .result-panel {
-            margin-top: 12px;
-            background: #1a2232;
-            padding: 10px;
-            border-radius: 8px;
+        .bot-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 8px;
         }
 
-        .signal-text {
-            font-size: 16px;
+        .bot-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-badge {
+            font-size: 10px;
+            background: #ff5252;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .status-badge.active {
+            background: #00e676;
+            color: #000;
             font-weight: bold;
         }
 
-        .up { color: var(--accent-color); }
-        .down { color: var(--danger-color); }
+        .pair-info {
+            font-size: 12px;
+            color: #8b9bb4;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Inner Mini Chart showing +1 Future Candle */
+        .inner-chart-box {
+            width: 100%;
+            height: 120px;
+            background: #000000;
+            border-radius: 8px;
+            border: 1px solid #2a364f;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #botChartContainer {
+            width: 100%;
+            height: 100%;
+        }
+
+        .action-btn {
+            width: 100%;
+            margin-top: 10px;
+            background: linear-gradient(135deg, #00e676, #00b0ff);
+            color: #000;
+            font-weight: bold;
+            border: none;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
 
-<div class="bot-card">
-    <div class="header">
-        <div class="bot-title">
-            <div class="bot-icon">🤖</div>
-            <div>
-                <strong style="font-size: 16px; display: block;">FINORIX PRO</strong>
-                <span style="font-size: 11px; color: var(--text-sub);">250+ KNOWLEDGE ENGINE</span>
+<div class="live-screen">
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <span>UTC+6 <strong id="clock">00:00:00</strong></span>
+        <span style="color: #00e676;">LIVE MARKET ACTIVE</span>
+    </div>
+
+    <!-- Main Chart -->
+    <div class="main-chart">
+        <div id="mainChartContainer"></div>
+    </div>
+
+    <!-- Finorix Pro Floating Overlay -->
+    <div class="finorix-bot-overlay">
+        <div class="bot-header">
+            <div class="bot-title">
+                <span>🔴🔴</span>
+                <span>FINORIX PRO</span>
             </div>
+            <span class="status-badge active" id="actBadge">Activated</span>
         </div>
-        <span class="badge">ACTIVATED</span>
-    </div>
 
-    <div class="controls">
-        <div class="select-box">
-            <label>MARKET TYPE</label>
-            <select id="marketType" onchange="updatePairs()">
-                <option value="OTC Markets">OTC Markets</option>
-                <option value="Real Markets">Real Markets</option>
-            </select>
+        <div class="pair-info">
+            <span id="pairName">USD/PKR (OTC) 1m</span>
+            <span id="timerCountdown" style="color: #00e676; font-weight: bold;">00:53</span>
         </div>
-        <div class="select-box">
-            <label>SELECT PAIR</label>
-            <select id="pairSelect"></select>
-        </div>
-        <div class="select-box">
-            <label>TIMEFRAME</label>
-            <select id="timeframeSelect">
-                {% for tf in timeframes %}
-                <option value="{{tf}}" {% if tf == '1m' %}selected{% endif %}>{{tf}}</option>
-                {% endfor %}
-            </select>
-        </div>
-    </div>
 
-    <div class="chart-box">
-        <div id="chartContainer"></div>
-    </div>
-
-    <button class="signal-btn" onclick="generateSignal()">GENERATE PREDICTION (+1 CANDLE)</button>
-
-    <div class="result-panel">
-        <div>
-            <span style="font-size: 11px; color: var(--text-sub); display: block;">SIGNAL DIRECTION</span>
-            <span id="signalDir" class="signal-text">WAITING...</span>
+        <!-- Bot Inner Chart (+1 Future Candle Engine) -->
+        <div class="inner-chart-box">
+            <div id="botChartContainer"></div>
         </div>
-        <div>
-            <span style="font-size: 11px; color: var(--text-sub); display: block;">ACCURACY CONFLUENCE</span>
-            <span id="accuracyVal" style="font-weight: bold; color: #38bdf8;">--%</span>
-        </div>
+
+        <button class="action-btn" onclick="triggerPrediction()">GENERATE PREDICTION (+1 CANDLE)</button>
     </div>
 </div>
 
 <script>
-    const pairsData = {{ pairs | tojson }};
-    let chart, candleSeries;
+    let mainChart, mainSeries, botChart, botSeries;
+    let basePrice = 293.600;
+    let predictedDir = 'UP';
 
-    function initChart() {
-        const container = document.getElementById('chartContainer');
-        chart = LightweightCharts.createChart(container, {
-            layout: { backgroundColor: '#000000', textColor: '#ffffff' },
-            grid: { vertLines: { color: '#1a2232' }, horzLines: { color: '#1a2232' } },
+    function initCharts() {
+        // Main Chart Setup
+        const mainContainer = document.getElementById('mainChartContainer');
+        mainChart = LightweightCharts.createChart(mainContainer, {
+            layout: { backgroundColor: '#0b0e14', textColor: '#8b9bb4' },
+            grid: { vertLines: { color: '#182030' }, horzLines: { color: '#182030' } },
             timeScale: { timeVisible: true, secondsVisible: true }
         });
 
-        candleSeries = chart.addCandlestickSeries({
+        mainSeries = mainChart.addCandlestickSeries({
             upColor: '#00e676', downColor: '#ff5252',
             borderUpColor: '#00e676', borderDownColor: '#ff5252',
             wickUpColor: '#00e676', wickDownColor: '#ff5252'
         });
 
-        renderBaseCandles('CALL');
-    }
-
-    function updatePairs() {
-        const type = document.getElementById('marketType').value;
-        const select = document.getElementById('pairSelect');
-        select.innerHTML = '';
-        pairsData[type].forEach(pair => {
-            let opt = document.createElement('option');
-            opt.value = pair;
-            opt.innerHTML = pair;
-            select.appendChild(opt);
+        // Bot Inner Chart Setup
+        const botContainer = document.getElementById('botChartContainer');
+        botChart = LightweightCharts.createChart(botContainer, {
+            layout: { backgroundColor: '#000000', textColor: '#ffffff' },
+            grid: { vertLines: { color: '#111' }, horzLines: { color: '#111' } },
+            timeScale: { timeVisible: true, secondsVisible: true }
         });
+
+        botSeries = botChart.addCandlestickSeries({
+            upColor: '#00e676', downColor: '#ff5252',
+            borderUpColor: '#00e676', borderDownColor: '#ff5252',
+            wickUpColor: '#00e676', wickDownColor: '#ff5252'
+        });
+
+        updateChartData();
     }
 
-    function renderBaseCandles(predictedDirection) {
+    function updateChartData() {
         let now = Math.floor(Date.now() / 1000);
-        let basePrice = 293.600;
-        let data = [];
+        let mainData = [];
+        let botData = [];
 
-        // Past 5 candles
+        // Generate past 5 candles
+        let p = basePrice;
         for (let i = 5; i >= 1; i--) {
-            let time = now - (i * 60);
-            let open = basePrice + (Math.random() * 0.020 - 0.010);
-            let close = open + (Math.random() * 0.030 - 0.015);
-            data.push({
-                time: time,
+            let t = now - (i * 60);
+            let open = p + (Math.random() * 0.02 - 0.01);
+            let close = open + (Math.random() * 0.03 - 0.015);
+            let candle = {
+                time: t,
                 open: open,
                 high: Math.max(open, close) + 0.005,
                 low: Math.min(open, close) - 0.005,
                 close: close
-            });
-            basePrice = close;
+            };
+            mainData.push(candle);
+            botData.push(candle);
+            p = close;
         }
 
         // Current Running Candle
-        let currentOpen = basePrice;
-        let currentClose = currentOpen + 0.010;
-        data.push({
+        let currentOpen = p;
+        let currentClose = currentOpen + (Math.random() * 0.01);
+        let currentCandle = {
             time: now,
             open: currentOpen,
-            high: currentClose + 0.004,
+            high: currentClose + 0.003,
             low: currentOpen - 0.002,
             close: currentClose
-        });
+        };
 
-        // FUTURE +1 PREDICTED CANDLE (Advanced Feature)
+        mainData.push(currentCandle);
+        botData.push(currentCandle);
+
+        // +1 FUTURE PREDICTED CANDLE IN BOT CHART ONLY
         let futureTime = now + 60;
         let futureOpen = currentClose;
-        let futureClose = predictedDirection === 'CALL' ? futureOpen + 0.025 : futureOpen - 0.025;
+        let futureClose = predictedDir === 'UP' ? futureOpen + 0.025 : futureOpen - 0.025;
 
-        data.push({
+        botData.push({
             time: futureTime,
             open: futureOpen,
-            high: Math.max(futureOpen, futureClose) + 0.005,
-            low: Math.min(futureOpen, futureClose) - 0.005,
+            high: Math.max(futureOpen, futureClose) + 0.004,
+            low: Math.min(futureOpen, futureClose) - 0.004,
             close: futureClose
         });
 
-        candleSeries.setData(data);
-        chart.timeScale().fitContent();
+        mainSeries.setData(mainData);
+        botSeries.setData(botData);
+
+        mainChart.timeScale().fitContent();
+        botChart.timeScale().fitContent();
     }
 
-    function generateSignal() {
-        const directions = ['CALL (UP)', 'PUT (DOWN)'];
-        const chosen = directions[Math.floor(Math.random() * directions.length)];
-        const accuracy = (88 + Math.random() * 9).toFixed(1);
-
-        const dirEl = document.getElementById('signalDir');
-        dirEl.innerText = chosen;
-        dirEl.className = 'signal-text ' + (chosen.includes('CALL') ? 'up' : 'down');
+    function updateClock() {
+        let d = new Date();
+        document.getElementById('clock').innerText = d.toTimeString().split(' ')[0];
         
-        document.getElementById('accuracyVal').innerText = accuracy + '%';
+        let seconds = 60 - d.getSeconds();
+        let secStr = seconds < 10 ? '0' + seconds : seconds;
+        document.getElementById('timerCountdown').innerText = '00:' + secStr;
 
-        renderBaseCandles(chosen.includes('CALL') ? 'CALL' : 'PUT');
+        // Auto shift candles every 60 seconds
+        if (seconds === 60 || seconds === 0) {
+            updateChartData();
+        }
     }
+
+    function triggerPrediction() {
+        predictedDir = Math.random() > 0.5 ? 'UP' : 'DOWN';
+        updateChartData();
+    }
+
+    setInterval(updateClock, 1000);
 
     window.onload = () => {
-        updatePairs();
-        initChart();
+        initCharts();
     };
 </script>
 
@@ -353,8 +322,8 @@ HTML_TEMPLATE = """
 """
 
 @app.route('/')
-def home():
-    return render_template_string(HTML_TEMPLATE, pairs=MARKET_PAIRS, timeframes=TIMEFRAMES)
+def index():
+    return render_template_string(HTML_TEMPLATE)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
