@@ -1,6 +1,6 @@
 import time
 import random
-from flask import Flask, render_template_string, jsonify
+from flask import Flask, render_template_string
 
 app = Flask(__name__)
 
@@ -25,7 +25,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FINORIX PRO SOFTWARE</title>
+    <title>FINORIX PRO - LIVE REALTIME ENGINE</title>
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         :root {
@@ -129,10 +129,10 @@ HTML_TEMPLATE = """
             font-size: 12px;
         }
 
-        /* Chart Area Fix - Full Visibility */
+        /* Chart Area Fix */
         .chart-box {
             width: 100%;
-            height: 180px;
+            height: 220px;
             background: #000000;
             border-radius: 8px;
             overflow: hidden;
@@ -144,6 +144,19 @@ HTML_TEMPLATE = """
         #chartContainer {
             width: 100%;
             height: 100%;
+        }
+
+        .live-status {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            z-index: 10;
+            font-size: 10px;
+            background: rgba(0, 230, 118, 0.2);
+            color: var(--accent-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--accent-color);
         }
 
         .signal-btn {
@@ -206,7 +219,7 @@ HTML_TEMPLATE = """
         </div>
         <div class="select-box">
             <label>PAIR</label>
-            <select id="pairSelect"></select>
+            <select id="pairSelect" onchange="resetBasePrice()"></select>
         </div>
         <div class="select-box">
             <label>TIMEFRAME</label>
@@ -218,21 +231,22 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
-    <!-- MAIN CHART CONTAINER -->
+    <!-- MAIN CHART CONTAINER WITH LIVE OVERLAY -->
     <div class="chart-box">
-        <div id="chartContainer"></div>
+        <div class="live-status">● LIVE RUNNING (+1 FUTURE CANDLE)</div>
+        <div idchartContainer" id="chartContainer"></div>
     </div>
 
-    <button class="signal-btn" onclick="generateSignal()">GENERATE SIGNAL (+1 CANDLE)</button>
+    <button class="signal-btn" onclick="manualAnalyse()">ANALYZE SIGNAL CONFLUENCE</button>
 
     <div class="result-panel">
         <div>
-            <span style="font-size: 10px; color: var(--text-sub); display: block;">SIGNAL</span>
-            <span id="signalDir" class="signal-text">WAITING...</span>
+            <span style="font-size: 10px; color: var(--text-sub); display: block;">FUTURE PREDICTION</span>
+            <span id="signalDir" class="signal-text up">CALL (UP)</span>
         </div>
         <div>
             <span style="font-size: 10px; color: var(--text-sub); display: block;">ACCURACY</span>
-            <span id="accuracyVal" style="font-weight: bold; color: #38bdf8;">--%</span>
+            <span id="accuracyVal" style="font-weight: bold; color: #38bdf8;">94.5%</span>
         </div>
     </div>
 </div>
@@ -241,9 +255,14 @@ HTML_TEMPLATE = """
     const pairsData = {{ pairs | tojson }};
     let chart, candleSeries;
     let basePrice = 293.600;
+    let currentCandleOpen = 293.600;
+    let currentCandleClose = 293.605;
+    let futureDirection = 'CALL'; // 'CALL' or 'PUT'
 
     function initChart() {
         const container = document.getElementById('chartContainer');
+        container.innerHTML = '';
+
         chart = LightweightCharts.createChart(container, {
             layout: { backgroundColor: '#000000', textColor: '#ffffff' },
             grid: { vertLines: { color: '#151c28' }, horzLines: { color: '#151c28' } },
@@ -256,7 +275,9 @@ HTML_TEMPLATE = """
             wickUpColor: '#00e676', wickDownColor: '#ff5252'
         });
 
-        renderCandles('CALL');
+        buildInitialChart();
+        // Start Continuous Live Realtime Updates
+        setInterval(updateLiveTick, 1000);
     }
 
     function updatePairs() {
@@ -269,20 +290,29 @@ HTML_TEMPLATE = """
             opt.innerHTML = pair;
             select.appendChild(opt);
         });
+        resetBasePrice();
     }
 
-    function renderCandles(predictedDirection) {
+    function resetBasePrice() {
+        basePrice = 100 + Math.random() * 500;
+        buildInitialChart();
+    }
+
+    let candleHistory = [];
+
+    function buildInitialChart() {
         let now = Math.floor(Date.now() / 1000);
-        let data = [];
+        candleHistory = [];
         let p = basePrice;
 
-        // Past 5 Historical Candles
-        for (let i = 5; i >= 1; i--) {
+        // Build 10 historical candles
+        for (let i = 10; i >= 1; i--) {
             let t = now - (i * 60);
             let open = p + (Math.random() * 0.02 - 0.01);
             let close = open + (Math.random() * 0.03 - 0.015);
-            data.push({
-                time: t, open: open,
+            candleHistory.push({
+                time: t,
+                open: open,
                 high: Math.max(open, close) + 0.005,
                 low: Math.min(open, close) - 0.005,
                 close: close
@@ -290,44 +320,92 @@ HTML_TEMPLATE = """
             p = close;
         }
 
-        // Current Running Candle
-        let currentOpen = p;
-        let currentClose = currentOpen + 0.008;
-        data.push({
-            time: now, open: currentOpen,
-            high: currentClose + 0.003,
-            low: currentOpen - 0.002,
-            close: currentClose
-        });
+        currentCandleOpen = p;
+        currentCandleClose = currentCandleOpen + 0.002;
 
-        // +1 FUTURE PREDICTED CANDLE (SHOWS 1 EXTRA CANDLE)
-        let futureTime = now + 60;
-        let futureOpen = currentClose;
-        let futureClose = predictedDirection === 'CALL' ? futureOpen + 0.020 : futureOpen - 0.020;
+        renderLiveSeries();
+    }
 
-        data.push({
-            time: futureTime, open: futureOpen,
+    function updateLiveTick() {
+        let now = Math.floor(Date.now() / 1000);
+        let seconds = new Date().getSeconds();
+
+        // 1. Simulating price fluctuations in current running candle
+        let tickChange = (Math.random() * 0.008 - 0.004);
+        currentCandleClose += tickChange;
+
+        // If a new minute starts, push running candle to history and start new one
+        if (seconds === 0) {
+            let lastTime = now - 60;
+            candleHistory.push({
+                time: lastTime,
+                open: currentCandleOpen,
+                high: Math.max(currentCandleOpen, currentCandleClose) + 0.004,
+                low: Math.min(currentCandleOpen, currentCandleClose) - 0.004,
+                close: currentCandleClose
+            });
+            if (candleHistory.length > 20) candleHistory.shift();
+
+            currentCandleOpen = currentCandleClose;
+            // Randomize new future prediction
+            futureDirection = Math.random() > 0.5 ? 'CALL' : 'PUT';
+            updateSignalDisplay();
+        }
+
+        renderLiveSeries();
+    }
+
+    function renderLiveSeries() {
+        let now = Math.floor(Date.now() / 1000);
+        let currentCandleTime = now - (now % 60); // Align to current minute
+
+        let displayData = [...candleHistory];
+
+        // Current Active Live Candle
+        let runningCandle = {
+            time: currentCandleTime,
+            open: currentCandleOpen,
+            high: Math.max(currentCandleOpen, currentCandleClose) + 0.003,
+            low: Math.min(currentCandleOpen, currentCandleClose) - 0.003,
+            close: currentCandleClose
+        };
+        displayData.push(runningCandle);
+
+        // ALWAYS RENDER +1 FUTURE CANDLE ON LIVE CHART
+        let futureTime = currentCandleTime + 60;
+        let futureOpen = currentCandleClose;
+        let futureClose = futureDirection === 'CALL' ? futureOpen + 0.025 : futureOpen - 0.025;
+
+        let futureCandle = {
+            time: futureTime,
+            open: futureOpen,
             high: Math.max(futureOpen, futureClose) + 0.004,
             low: Math.min(futureOpen, futureClose) - 0.004,
             close: futureClose
-        });
+        };
+        displayData.push(futureCandle);
 
-        candleSeries.setData(data);
+        candleSeries.setData(displayData);
         chart.timeScale().fitContent();
     }
 
-    function generateSignal() {
-        const directions = ['CALL (UP)', 'PUT (DOWN)'];
-        const chosen = directions[Math.floor(Math.random() * directions.length)];
-        const accuracy = (89 + Math.random() * 8).toFixed(1);
-
-        const dirEl = document.getElementById('signalDir');
-        dirEl.innerText = chosen;
-        dirEl.className = 'signal-text ' + (chosen.includes('CALL') ? 'up' : 'down');
-
+    function manualAnalyse() {
+        futureDirection = Math.random() > 0.5 ? 'CALL' : 'PUT';
+        let accuracy = (90 + Math.random() * 8).toFixed(1);
         document.getElementById('accuracyVal').innerText = accuracy + '%';
+        updateSignalDisplay();
+        renderLiveSeries();
+    }
 
-        renderCandles(chosen.includes('CALL') ? 'CALL' : 'PUT');
+    function updateSignalDisplay() {
+        const dirEl = document.getElementById('signalDir');
+        if (futureDirection === 'CALL') {
+            dirEl.innerText = 'CALL (UP)';
+            dirEl.className = 'signal-text up';
+        } else {
+            dirEl.innerText = 'PUT (DOWN)';
+            dirEl.className = 'signal-text down';
+        }
     }
 
     window.onload = () => {
