@@ -25,8 +25,8 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FINORIX PRO - LIVE REALTIME ENGINE</title>
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <title>FINORIX PRO - LIVE REALTIME CHART</title>
+    <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         :root {
             --bg-color: #0b0e14;
@@ -58,12 +58,6 @@ HTML_TEMPLATE = """
             padding: 16px;
             box-shadow: 0 0 20px rgba(0, 230, 118, 0.25);
             border: 1px solid rgba(0, 230, 118, 0.4);
-            animation: pulseGlow 2.5s infinite alternate;
-        }
-
-        @keyframes pulseGlow {
-            0% { border-color: rgba(0, 230, 118, 0.3); box-shadow: 0 0 10px rgba(0, 230, 118, 0.2); }
-            100% { border-color: rgba(0, 230, 118, 0.9); box-shadow: 0 0 22px rgba(0, 230, 118, 0.6); }
         }
 
         .header {
@@ -129,16 +123,16 @@ HTML_TEMPLATE = """
             font-size: 12px;
         }
 
-        /* Chart Area Fix */
+        /* Fixed Chart Container Box */
         .chart-box {
             width: 100%;
-            height: 220px;
+            height: 240px;
             background: #000000;
             border-radius: 8px;
-            overflow: hidden;
             position: relative;
             border: 1px solid #2e3a52;
             margin-bottom: 12px;
+            overflow: hidden;
         }
 
         #chartContainer {
@@ -157,6 +151,7 @@ HTML_TEMPLATE = """
             padding: 2px 6px;
             border-radius: 4px;
             border: 1px solid var(--accent-color);
+            pointer-events: none;
         }
 
         .signal-btn {
@@ -203,7 +198,7 @@ HTML_TEMPLATE = """
             <div class="bot-icon">🔴</div>
             <div>
                 <strong style="font-size: 15px; display: block;">FINORIX PRO</strong>
-                <span style="font-size: 10px; color: var(--text-sub);">BINARY SOFTWARE</span>
+                <span style="font-size: 10px; color: var(--text-sub);">LIVE CHART ENGINE</span>
             </div>
         </div>
         <span class="badge">ACTIVATED</span>
@@ -231,10 +226,10 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
-    <!-- MAIN CHART CONTAINER WITH LIVE OVERLAY -->
+    <!-- MAIN CHART CONTAINER -->
     <div class="chart-box">
-        <div class="live-status">● LIVE RUNNING (+1 FUTURE CANDLE)</div>
-        <div idchartContainer" id="chartContainer"></div>
+        <div class="live-status">● LIVE RUNNING (+1 FUTURE)</div>
+        <div id="chartContainer"></div>
     </div>
 
     <button class="signal-btn" onclick="manualAnalyse()">ANALYZE SIGNAL CONFLUENCE</button>
@@ -257,13 +252,16 @@ HTML_TEMPLATE = """
     let basePrice = 293.600;
     let currentCandleOpen = 293.600;
     let currentCandleClose = 293.605;
-    let futureDirection = 'CALL'; // 'CALL' or 'PUT'
+    let futureDirection = 'CALL';
+    let candleHistory = [];
 
     function initChart() {
         const container = document.getElementById('chartContainer');
         container.innerHTML = '';
 
         chart = LightweightCharts.createChart(container, {
+            width: container.clientWidth,
+            height: container.clientHeight,
             layout: { backgroundColor: '#000000', textColor: '#ffffff' },
             grid: { vertLines: { color: '#151c28' }, horzLines: { color: '#151c28' } },
             timeScale: { timeVisible: true, secondsVisible: true }
@@ -276,7 +274,6 @@ HTML_TEMPLATE = """
         });
 
         buildInitialChart();
-        // Start Continuous Live Realtime Updates
         setInterval(updateLiveTick, 1000);
     }
 
@@ -298,16 +295,14 @@ HTML_TEMPLATE = """
         buildInitialChart();
     }
 
-    let candleHistory = [];
-
     function buildInitialChart() {
         let now = Math.floor(Date.now() / 1000);
+        let baseTime = now - (now % 60);
         candleHistory = [];
         let p = basePrice;
 
-        // Build 10 historical candles
         for (let i = 10; i >= 1; i--) {
-            let t = now - (i * 60);
+            let t = baseTime - (i * 60);
             let open = p + (Math.random() * 0.02 - 0.01);
             let close = open + (Math.random() * 0.03 - 0.015);
             candleHistory.push({
@@ -322,7 +317,6 @@ HTML_TEMPLATE = """
 
         currentCandleOpen = p;
         currentCandleClose = currentCandleOpen + 0.002;
-
         renderLiveSeries();
     }
 
@@ -330,13 +324,11 @@ HTML_TEMPLATE = """
         let now = Math.floor(Date.now() / 1000);
         let seconds = new Date().getSeconds();
 
-        // 1. Simulating price fluctuations in current running candle
         let tickChange = (Math.random() * 0.008 - 0.004);
         currentCandleClose += tickChange;
 
-        // If a new minute starts, push running candle to history and start new one
         if (seconds === 0) {
-            let lastTime = now - 60;
+            let lastTime = now - 60 - (now % 60);
             candleHistory.push({
                 time: lastTime,
                 open: currentCandleOpen,
@@ -347,7 +339,6 @@ HTML_TEMPLATE = """
             if (candleHistory.length > 20) candleHistory.shift();
 
             currentCandleOpen = currentCandleClose;
-            // Randomize new future prediction
             futureDirection = Math.random() > 0.5 ? 'CALL' : 'PUT';
             updateSignalDisplay();
         }
@@ -357,11 +348,10 @@ HTML_TEMPLATE = """
 
     function renderLiveSeries() {
         let now = Math.floor(Date.now() / 1000);
-        let currentCandleTime = now - (now % 60); // Align to current minute
+        let currentCandleTime = now - (now % 60);
 
         let displayData = [...candleHistory];
 
-        // Current Active Live Candle
         let runningCandle = {
             time: currentCandleTime,
             open: currentCandleOpen,
@@ -371,7 +361,7 @@ HTML_TEMPLATE = """
         };
         displayData.push(runningCandle);
 
-        // ALWAYS RENDER +1 FUTURE CANDLE ON LIVE CHART
+        // +1 FUTURE CANDLE
         let futureTime = currentCandleTime + 60;
         let futureOpen = currentCandleClose;
         let futureClose = futureDirection === 'CALL' ? futureOpen + 0.025 : futureOpen - 0.025;
@@ -411,6 +401,13 @@ HTML_TEMPLATE = """
     window.onload = () => {
         updatePairs();
         initChart();
+    };
+
+    window.onresize = () => {
+        if (chart) {
+            const container = document.getElementById('chartContainer');
+            chart.resize(container.clientWidth, container.clientHeight);
+        }
     };
 </script>
 
