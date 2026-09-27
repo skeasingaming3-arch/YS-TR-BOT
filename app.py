@@ -8,16 +8,15 @@ MARKET_PAIRS = {
     "OTC Markets": [
         "USD/PKR (OTC)", "USD/BDT (OTC)", "USD/INR (OTC)", "CAD/CHF (OTC)", 
         "NZD/CHF (OTC)", "USD/IDR (OTC)", "USD/BRL (OTC)", "AUD/NZD (OTC)", 
-        "USD/ARS (OTC)", "NZD/JPY (OTC)", "USD/COP (OTC)", "USD/EGP (OTC)", 
-        "Bitcoin (OTC)", "Ethereum (OTC)", "Gold (OTC)", "Silver (OTC)"
+        "USD/ARS (OTC)", "NZD/JPY (OTC)", "Gold (OTC)", "Silver (OTC)"
     ],
     "Real Markets": [
         "EUR/USD", "GBP/USD", "USD/JPY", "EUR/JPY", "GBP/JPY", 
-        "AUD/USD", "USD/CAD", "USD/CHF", "EUR/GBP", "AUD/CAD"
+        "AUD/USD", "USD/CAD", "USD/CHF", "EUR/GBP"
     ]
 }
 
-TIMEFRAMES = ["10s", "20s", "30s", "1m", "2m", "3m", "4m", "5m"]
+TIMEFRAMES = ["10s", "20s", "30s", "1m", "2m", "5m"]
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -25,7 +24,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FINORIX PRO - ACCURATE LIVE CHART ENGINE</title>
+    <title>FINORIX PRO - REALTIME OVERLAY ENGINE</title>
     <style>
         :root {
             --bg-color: #0b0e14;
@@ -52,11 +51,11 @@ HTML_TEMPLATE = """
         .bot-card {
             background: var(--card-bg);
             width: 100%;
-            max-width: 430px;
+            max-width: 420px;
             border-radius: 16px;
             padding: 16px;
-            box-shadow: 0 0 20px rgba(0, 230, 118, 0.25);
-            border: 1px solid rgba(0, 230, 118, 0.4);
+            box-shadow: 0 0 20px rgba(0, 230, 118, 0.2);
+            border: 1px solid rgba(0, 230, 118, 0.3);
         }
 
         .header {
@@ -110,6 +109,7 @@ HTML_TEMPLATE = """
         label {
             font-size: 10px;
             color: var(--text-sub);
+            font-weight: 600;
         }
 
         select {
@@ -122,10 +122,10 @@ HTML_TEMPLATE = """
             font-size: 12px;
         }
 
-        /* Live Chart Container Area */
+        /* Chart Canvas Area */
         .chart-box {
             width: 100%;
-            height: 230px;
+            height: 220px;
             background: #06090e;
             border-radius: 8px;
             position: relative;
@@ -167,6 +167,7 @@ HTML_TEMPLATE = """
             border-radius: 4px;
             border: 1px solid #38bdf8;
             font-weight: bold;
+            font-family: monospace;
             pointer-events: none;
         }
 
@@ -175,16 +176,17 @@ HTML_TEMPLATE = """
             background: linear-gradient(135deg, #00e676, #00b0ff);
             color: #000;
             border: none;
-            padding: 11px;
+            padding: 12px;
             font-size: 14px;
-            font-weight: bold;
+            font-weight: 800;
             border-radius: 8px;
             cursor: pointer;
-            transition: 0.3s;
+            transition: 0.2s;
+            text-transform: uppercase;
         }
 
-        .signal-btn:hover {
-            opacity: 0.9;
+        .signal-btn:active {
+            transform: scale(0.98);
         }
 
         .result-panel {
@@ -242,7 +244,6 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
-    <!-- CANVAS LIVE CHART AREA -->
     <div class="chart-box">
         <div class="live-status">● LIVE +1 FUTURE CANDLE</div>
         <div class="timer-status" id="candleTimer">00:60</div>
@@ -266,7 +267,7 @@ HTML_TEMPLATE = """
 <script>
     const pairsData = {{ pairs | tojson }};
     let canvas, ctx;
-    let basePrice = 1.08500;
+    let basePrice = 100.00;
     let historicalCandles = [];
     let futureDirection = 'CALL';
     let lastMinute = -1;
@@ -286,17 +287,16 @@ HTML_TEMPLATE = """
 
     function resetChartData() {
         historicalCandles = [];
-        basePrice = 100 + Math.random() * 200;
+        basePrice = 100 + Math.random() * 150;
         let curr = basePrice;
 
-        // Generating realistic past 12 candlestick structures
-        for (let i = 0; i < 12; i++) {
+        for (let i = 0; i < 11; i++) {
             let open = curr;
-            let delta = (Math.random() - 0.48) * 1.8;
+            let delta = (Math.random() - 0.49) * 1.6;
             let close = open + delta;
-            let high = Math.max(open, close) + Math.random() * 0.8;
-            let low = Math.min(open, close) - Math.random() * 0.8;
-            historicalCandles.push({ open, high, low, close, isFuture: false });
+            let high = Math.max(open, close) + Math.random() * 0.6;
+            let low = Math.min(open, close) - Math.random() * 0.6;
+            historicalCandles.push({ open, high, low, close });
             curr = close;
         }
 
@@ -309,8 +309,6 @@ HTML_TEMPLATE = """
         resizeCanvas();
 
         updatePairs();
-        
-        // Accurate Clock and Tick Synchronization
         setInterval(engineTick, 1000);
     }
 
@@ -324,34 +322,29 @@ HTML_TEMPLATE = """
         let seconds = now.getSeconds();
         let remaining = 60 - seconds;
         
-        // Update countdown on UI (Accurate 1 Min Synchronization)
         document.getElementById('candleTimer').innerText = "00:" + (remaining < 10 ? "0" : "") + remaining;
 
         let activeIdx = historicalCandles.length - 1;
         if (activeIdx < 0) return;
 
-        // Realistic live price tick movement
-        let tickDelta = (Math.random() - 0.49) * 0.35;
+        let tickDelta = (Math.random() - 0.495) * 0.25;
         historicalCandles[activeIdx].close += tickDelta;
         historicalCandles[activeIdx].high = Math.max(historicalCandles[activeIdx].high, historicalCandles[activeIdx].close);
         historicalCandles[activeIdx].low = Math.min(historicalCandles[activeIdx].low, historicalCandles[activeIdx].close);
 
-        // When a exact new minute starts (Seconds = 0) -> Shift Candle
         let currentMinute = now.getMinutes();
         if (lastMinute !== -1 && currentMinute !== lastMinute) {
             let newOpen = historicalCandles[activeIdx].close;
             let newClose = newOpen + (Math.random() - 0.48) * 1.2;
             historicalCandles.push({
                 open: newOpen,
-                high: Math.max(newOpen, newClose) + Math.random() * 0.5,
-                low: Math.min(newOpen, newClose) - Math.random() * 0.5,
-                close: newClose,
-                isFuture: false
+                high: Math.max(newOpen, newClose) + Math.random() * 0.4,
+                low: Math.min(newOpen, newClose) - Math.random() * 0.4,
+                close: newClose
             });
 
-            if (historicalCandles.length > 13) historicalCandles.shift();
+            if (historicalCandles.length > 12) historicalCandles.shift();
 
-            // Refresh Future Prediction for next minute
             futureDirection = Math.random() > 0.48 ? 'CALL' : 'PUT';
             updateUI();
         }
@@ -364,7 +357,6 @@ HTML_TEMPLATE = """
         if (!ctx) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Background Grid Lines
         ctx.strokeStyle = '#121926';
         ctx.lineWidth = 1;
         for (let x = 0; x < canvas.width; x += 35) {
@@ -374,7 +366,6 @@ HTML_TEMPLATE = """
             ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
         }
 
-        // Build array with +1 Future Candle
         let renderList = JSON.parse(JSON.stringify(historicalCandles));
         let lastCandle = renderList[renderList.length - 1];
         
@@ -388,7 +379,6 @@ HTML_TEMPLATE = """
             isFuture: true
         });
 
-        // Dynamic Min / Max Price Scaling
         let minPrice = Infinity, maxPrice = -Infinity;
         renderList.forEach(c => {
             if (c.low < minPrice) minPrice = c.low;
@@ -418,44 +408,34 @@ HTML_TEMPLATE = """
             ctx.lineTo(x + barWidth / 2, yLow);
             ctx.stroke();
 
-            // Body Rendering
+            // Solid Candle Body Rendering
             let bodyY = Math.min(yOpen, yClose);
             let bodyHeight = Math.abs(yClose - yOpen) || 2;
 
-            if (c.isFuture) {
-                // Future Candle Render Logic (Dashed Border + Translucent Fill)
-                ctx.strokeStyle = candleColor;
-                ctx.lineWidth = 2;
-                ctx.setLineDash([4, 3]);
-                ctx.strokeRect(x, bodyY, barWidth, bodyHeight);
-                ctx.setLineDash([]);
-                
-                ctx.fillStyle = candleColor + "35";
-                ctx.fillRect(x, bodyY, barWidth, bodyHeight);
+            ctx.fillStyle = candleColor;
+            ctx.fillRect(x, bodyY, barWidth, bodyHeight);
 
-                // Top Pointer Arrow for Future Candle
-                ctx.fillStyle = candleColor;
+            // Pointer Marker for the extra Future Candle
+            if (c.isFuture) {
+                ctx.fillStyle = '#ffffff';
                 ctx.beginPath();
                 if(isGreen) {
-                    ctx.moveTo(x + barWidth / 2 - 4, yHigh - 3);
-                    ctx.lineTo(x + barWidth / 2 + 4, yHigh - 3);
-                    ctx.lineTo(x + barWidth / 2, yHigh - 9);
+                    ctx.moveTo(x + barWidth / 2 - 3, yHigh - 3);
+                    ctx.lineTo(x + barWidth / 2 + 3, yHigh - 3);
+                    ctx.lineTo(x + barWidth / 2, yHigh - 8);
                 } else {
-                    ctx.moveTo(x + barWidth / 2 - 4, yLow + 3);
-                    ctx.lineTo(x + barWidth / 2 + 4, yLow + 3);
-                    ctx.lineTo(x + barWidth / 2, yLow + 9);
+                    ctx.moveTo(x + barWidth / 2 - 3, yLow + 3);
+                    ctx.lineTo(x + barWidth / 2 + 3, yLow + 3);
+                    ctx.lineTo(x + barWidth / 2, yLow + 8);
                 }
                 ctx.fill();
-            } else {
-                ctx.fillStyle = candleColor;
-                ctx.fillRect(x, bodyY, barWidth, bodyHeight);
             }
         });
     }
 
     function manualAnalyse() {
         futureDirection = Math.random() > 0.48 ? 'CALL' : 'PUT';
-        let accuracy = (92 + Math.random() * 6).toFixed(1);
+        let accuracy = (93 + Math.random() * 5).toFixed(1);
         document.getElementById('accuracyVal').innerText = accuracy + '%';
         updateUI();
         renderChart();
@@ -472,14 +452,8 @@ HTML_TEMPLATE = """
         }
     }
 
-    window.onload = () => {
-        initEngine();
-    };
-
-    window.onresize = () => {
-        resizeCanvas();
-        renderChart();
-    };
+    window.onload = initEngine;
+    window.onresize = () => { resizeCanvas(); renderChart(); };
 </script>
 
 </body>
