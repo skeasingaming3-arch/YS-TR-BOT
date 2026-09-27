@@ -24,7 +24,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FINORIX PRO - REALTIME OVERLAY ENGINE</title>
+    <title>FINORIX PRO - LIVE OVERLAY ENGINE</title>
     <style>
         :root {
             --bg-color: #0b0e14;
@@ -40,7 +40,7 @@ HTML_TEMPLATE = """
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Roboto, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -122,7 +122,6 @@ HTML_TEMPLATE = """
             font-size: 12px;
         }
 
-        /* Chart Canvas Area */
         .chart-box {
             width: 100%;
             height: 220px;
@@ -400,7 +399,6 @@ HTML_TEMPLATE = """
             let isGreen = c.close >= c.open;
             let candleColor = isGreen ? '#00e676' : '#ff5252';
 
-            // Wick Rendering
             ctx.strokeStyle = candleColor;
             ctx.lineWidth = 1.8;
             ctx.beginPath();
@@ -408,14 +406,12 @@ HTML_TEMPLATE = """
             ctx.lineTo(x + barWidth / 2, yLow);
             ctx.stroke();
 
-            // Solid Candle Body Rendering
             let bodyY = Math.min(yOpen, yClose);
             let bodyHeight = Math.abs(yClose - yOpen) || 2;
 
             ctx.fillStyle = candleColor;
             ctx.fillRect(x, bodyY, barWidth, bodyHeight);
 
-            // Pointer Marker for the extra Future Candle
             if (c.isFuture) {
                 ctx.fillStyle = '#ffffff';
                 ctx.beginPath();
